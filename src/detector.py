@@ -77,9 +77,6 @@ class PaintingDetector():
         contours, hierarchy = cv2.findContours(canny_output, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         contours = sorted(contours, key=cv2.contourArea, reverse=True)[:25]
 
-        # Remove internal contours
-        # Hierarchy order: [Next, Previous, First_Child, Parent]
-
         # This may be handy later on
         # blob_contours = np.zeros((canny_output.shape[0], canny_output.shape[1], 1), dtype=np.uint8)
         # cv2.fillPoly(blob_contours, pts=contours, color=(255,255,255))
@@ -98,8 +95,6 @@ class PaintingDetector():
 
             # Use approxPolyDP to simplify the convex hull (this should give a quadrilateral for painting frames)
             approx = cv2.approxPolyDP(curve=convex_hull, epsilon=20, closed=True)
-
-            # TODO: Introduce some other constraints, perhaps a minimal length and width of 150px.
 
             # Ratio of contour area and the convex hull area. This prevents very large and wrong contours.
             # see https://docs.opencv.org/4.x/da/dc1/tutorial_js_contour_properties.html
