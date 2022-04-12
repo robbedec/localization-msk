@@ -81,8 +81,8 @@ class PaintingDetector():
         # Hierarchy order: [Next, Previous, First_Child, Parent]
 
         # This may be handy later on
-        blob_contours = np.zeros((canny_output.shape[0], canny_output.shape[1], 1), dtype=np.uint8)
-        cv2.fillPoly(blob_contours, pts=contours, color=(255,255,255))
+        # blob_contours = np.zeros((canny_output.shape[0], canny_output.shape[1], 1), dtype=np.uint8)
+        # cv2.fillPoly(blob_contours, pts=contours, color=(255,255,255))
 
         if display:
             drawing = np.zeros((canny_output.shape[0], canny_output.shape[1], 3), dtype=np.uint8)
@@ -135,6 +135,9 @@ class PaintingDetector():
             cv2.waitKey(0)
         
         return contour_results, original_copy
+    
+    def rectify_contour(self):
+        pass
     
 if __name__ == '__main__':
     impath = '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Computervisie 2020 Project Database/test_pictures_msk/20190217_102133.jpg'
