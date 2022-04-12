@@ -24,15 +24,16 @@ class PaintingDetector():
         self.load_img(value)
 
     def edgemap(self, display=False):
-        # TODO: Gaussian blur on grayscale image before canny
+        # Slightly blur the image to reduce noise in the edge detection.
+        img_bg_blurred = cv2.GaussianBlur(src=self._img_bg, ksize=(3,3), sigmaX=5)
 
         # http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.402.5899&rep=rep1&type=pdf
         # https://stackoverflow.com/questions/4292249/automatic-calculation-of-low-and-high-thresholds-for-the-canny-operation-in-open
-        otsu_thresh_val, _ = cv2.threshold(self._img_bg, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+        otsu_thresh_val, _ = cv2.threshold(img_bg_blurred, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
         high_thresh_val = otsu_thresh_val
         low_thresh_val = otsu_thresh_val * 0.5
 
-        edgemap = cv2.Canny(image=self._img_bg, threshold1=low_thresh_val, threshold2=high_thresh_val, L2gradient=True)
+        edgemap = cv2.Canny(image=img_bg_blurred, threshold1=low_thresh_val, threshold2=high_thresh_val, L2gradient=True)
 
         if display:
             cv2.imshow('Edgemap', edgemap)
@@ -47,14 +48,14 @@ class PaintingDetector():
     - display:
     """
     def contours(self, display=False):
-        canny_output = self.edgemap()
+        canny_output = self.edgemap(display=True)
         contour_results = []
 
         # Find contours and sort them by size. Ideally we only want paintings that are big enough so
         # the details of the painting are visible and usable to apply feature matching in a later stage.
         # This may fail if the contour is too small (TODO: maybe limit to the first X contours). 
         contours, hierarchy = cv2.findContours(canny_output, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        contours = sorted(contours, key=cv2.contourArea, reverse=True)[:20]
+        contours = sorted(contours, key=cv2.contourArea, reverse=True)[:40]
 
         if display:
             drawing = np.zeros((canny_output.shape[0], canny_output.shape[1], 3), dtype=np.uint8)
@@ -71,7 +72,12 @@ class PaintingDetector():
 
             # Use approxPolyDP to simplify the convex hull (this should give a quadrilateral for painting frames)
             approx = cv2.approxPolyDP(curve=convex_hull, epsilon=20, closed=True)
-            # Do something if four corners are found.
+
+            # TODO: Introduce some other constraints, perhaps a minimal length and width of 150px.
+            # TODO: Check if contour overlaps with another contour already in the list (and ignore it
+            # since the contours are sorted by size and taking the largest one is propably better).
+            # Save the contour if it can be described using a rectangle. The final list contains a list of
+            # candidate painting frames.
             if len(approx) == 4:
                 contour_results.append(approx)
 
@@ -99,5 +105,8 @@ if __name__ == '__main__':
     impath = '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Computervisie 2020 Project Database/test_pictures_msk/20190217_102133.jpg'
     #impath = '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Computervisie 2020 Project Database/test_pictures_msk/20190217_101930.jpg'
     img = cv2.imread(filename=impath)
+
     detector = PaintingDetector(img)
+
     detector.contours(display=True)
+    #detector.find_lines()
