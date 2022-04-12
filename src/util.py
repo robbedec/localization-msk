@@ -1,4 +1,5 @@
 import cv2
+import random as rng
 
 def resize_with_aspectratio(image, width=None, height=None, inter=cv2.INTER_AREA):
     dim = None
@@ -14,3 +15,6 @@ def resize_with_aspectratio(image, width=None, height=None, inter=cv2.INTER_AREA
         dim = (width, int(h * r))
 
     return cv2.resize(image, dim, interpolation=inter)
+
+def random_color():
+    return (rng.randint(0,256), rng.randint(0,256), rng.randint(0,256))

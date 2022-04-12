@@ -1,18 +1,25 @@
 import numpy as np
 import cv2
-import random as rng
 
-from util import resize_with_aspectratio
+from util import (
+    resize_with_aspectratio,
+    random_color,
+)
 
 class PaintingDetector():
-    def __init__(self, img):
-        self.load_image(img)
+    def __init__(self, img=None):
+        if img is not None:
+            self.load_image(img)
 
     def load_image(self, img):
         if not type(img) == np.ndarray:
             raise ValueError()
 
+        # TODO: Rescale image according to its original dimensions.
+        # TODO: Calculate blur metric and ignore frame if the score is low.
+        imh, imw, _ = img.shape
         self._img = resize_with_aspectratio(img, width=800)
+
         self._img_bg = cv2.cvtColor(self._img, cv2.COLOR_BGR2GRAY)
     
     @property
@@ -21,11 +28,11 @@ class PaintingDetector():
 
     @img.setter
     def img(self, value):
-        self.load_img(value)
+        self.load_image(value)
 
     def edgemap(self, display=False):
         # Slightly blur the image to reduce noise in the edge detection.
-        img_bg_blurred = cv2.GaussianBlur(src=self._img_bg, ksize=(3,3), sigmaX=5)
+        img_bg_blurred = cv2.GaussianBlur(src=self._img_bg, ksize=(3,3), sigmaX=7)
 
         # http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.402.5899&rep=rep1&type=pdf
         # https://stackoverflow.com/questions/4292249/automatic-calculation-of-low-and-high-thresholds-for-the-canny-operation-in-open
@@ -35,31 +42,40 @@ class PaintingDetector():
 
         edgemap = cv2.Canny(image=img_bg_blurred, threshold1=low_thresh_val, threshold2=high_thresh_val, L2gradient=True)
 
+        # Dilate the edgemap to connect
+        dilate_kernel = cv2.getStructuringElement(shape=cv2.MORPH_RECT, ksize=(1, 3))
+        dilated_edgemap = cv2.dilate(src=edgemap, kernel=dilate_kernel, iterations=1)
+        dilated_edgemap = cv2.dilate(src=dilated_edgemap, kernel=dilate_kernel.T, iterations=1)
+
         if display:
             cv2.imshow('Edgemap', edgemap)
+            cv2.imshow('Edgemap Dilated', dilated_edgemap)
             cv2.waitKey(0)
         
-        return edgemap
+        return dilated_edgemap
+        #return edgemap
     
     """
     Returns a list of contours that qualify as a painting frame (quadrilateral).
     Each contour is given by its four corners. 
 
     - display:
+
+    Returns a list of candidate contours and the original image annotated with
+    the contours.
     """
     def contours(self, display=False):
-        canny_output = self.edgemap(display=True)
+        canny_output = self.edgemap(display=False)
         contour_results = []
 
         # Find contours and sort them by size. Ideally we only want paintings that are big enough so
         # the details of the painting are visible and usable to apply feature matching in a later stage.
         # This may fail if the contour is too small (TODO: maybe limit to the first X contours). 
         contours, hierarchy = cv2.findContours(canny_output, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        contours = sorted(contours, key=cv2.contourArea, reverse=True)[:40]
+        contours = sorted(contours, key=cv2.contourArea, reverse=True)[:25]
 
         if display:
             drawing = np.zeros((canny_output.shape[0], canny_output.shape[1], 3), dtype=np.uint8)
-            drawing_filtered = np.zeros((canny_output.shape[0], canny_output.shape[1], 3), dtype=np.uint8)
 
         for i, contour in enumerate(contours):
             # https://stackoverflow.com/a/44156317
@@ -76,6 +92,8 @@ class PaintingDetector():
             # TODO: Introduce some other constraints, perhaps a minimal length and width of 150px.
             # TODO: Check if contour overlaps with another contour already in the list (and ignore it
             # since the contours are sorted by size and taking the largest one is propably better).
+            # see hierarchy parameter of findContours (https://docs.opencv.org/3.4/d9/d8b/tutorial_py_contours_hierarchy.html)
+
             # Save the contour if it can be described using a rectangle. The final list contains a list of
             # candidate painting frames.
             if len(approx) == 4:
@@ -83,27 +101,37 @@ class PaintingDetector():
 
             # TODO: Remove this, only used for initial testing
             if display:
-                color = (rng.randint(0,256), rng.randint(0,256), rng.randint(0,256))
-                cv2.drawContours(drawing, contours, i, color, 2, cv2.LINE_8, hierarchy, 0)
+                cv2.drawContours(drawing, contours, i, random_color(), 2, cv2.LINE_8, hierarchy, 0)
         
+        # Annotate the frame
+        original_copy = self._img.copy()
+        [ cv2.drawContours(original_copy, contour_results, i, random_color(), 2, cv2.LINE_8, hierarchy, 0) for i in range(len(contour_results)) ]
+
+
         # Draw contours
         if display:
+            drawing_filtered = np.zeros((canny_output.shape[0], canny_output.shape[1], 3), dtype=np.uint8)
+
             # Draw filtered contours on a seperate image.
-            for i in range(len(contour_results)):
-                color = (rng.randint(0,256), rng.randint(0,256), rng.randint(0,256))
-                cv2.drawContours(drawing_filtered, contour_results, i, color, 2, cv2.LINE_8, hierarchy, 0)
+            [ cv2.drawContours(drawing_filtered, contour_results, i, random_color(), 2, cv2.LINE_8, hierarchy, 0) for i in range(len(contour_results)) ]
 
             # Show in a window
             cv2.imshow('Original', self._img)
             cv2.imshow('Contours', drawing) # TODO: Remove, only used for initial testing
             cv2.imshow('Contours filtered', drawing_filtered)
+            cv2.imshow('Contours filtered on original image', original_copy)
             cv2.waitKey(0)
         
-        return contour_results
+        return contour_results, original_copy
+    
+    def annotated_image(self):
+        contours = self.contours()
 
 if __name__ == '__main__':
     impath = '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Computervisie 2020 Project Database/test_pictures_msk/20190217_102133.jpg'
     #impath = '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Computervisie 2020 Project Database/test_pictures_msk/20190217_101930.jpg'
+    impath = '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Computervisie 2020 Project Database/test_pictures_msk/20190203_110338.jpg'
+    impath = '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Computervisie 2020 Project Database/test_pictures_msk/20190217_110614.jpg'
     img = cv2.imread(filename=impath)
 
     detector = PaintingDetector(img)

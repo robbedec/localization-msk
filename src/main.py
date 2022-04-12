@@ -2,6 +2,7 @@ import cv2
 import sys
 
 from util import resize_with_aspectratio
+from detector import PaintingDetector
 
 def main():
     if len(sys.argv) != 2:
@@ -11,17 +12,22 @@ def main():
     print(video_path)
     
     cap = cv2.VideoCapture(video_path)
-    pTime = 0
+    fps = cap.get(cv2.CAP_PROP_FPS)
+
+    detector = PaintingDetector()
 
     while True:
         success, img = cap.read()
 
         if not success:
             break
+        
+        detector.img = img
+        result, img_with_contours = detector.contours(display=False)
 
-        cv2.imshow("Image", resize_with_aspectratio(image=img, width=400))
+        cv2.imshow("Image", img_with_contours)
 
-        cv2.waitKey(1)
+        cv2.waitKey(int(1000 / fps))
 
 if __name__ == '__main__':
     main()
