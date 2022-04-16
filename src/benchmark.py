@@ -124,21 +124,3 @@ for impath, df_group in df_paintings.groupby('image_path'):
 
 print('Avergage intersection over union score: {}\nPaintings detected: {}\nFalse negatives: {}'.format(sum(IOU_scores) / len(IOU_scores), len(IOU_scores), false_negatives))
 df_detection_problems.to_csv(OUT_PATH)
-
-# https://docs.opencv.org/4.x/d5/d45/tutorial_py_contours_more_functions.html
-# https://answers.opencv.org/question/90455/how-to-perform-intersection-or-union-operations-on-a-rect-in-python/
-# TODO: remove later
-def union(a,b):
-  x = min(a[0], b[0])
-  y = min(a[1], b[1])
-  w = max(a[0]+a[2], b[0]+b[2]) - x
-  h = max(a[1]+a[3], b[1]+b[3]) - y
-  return (x, y, w, h)
-
-def intersection(a,b):
-  x = max(a[0], b[0])
-  y = max(a[1], b[1])
-  w = min(a[0]+a[2], b[0]+b[2]) - x
-  h = min(a[1]+a[3], b[1]+b[3]) - y
-  if w<0 or h<0: return () # or (0,0,0,0) ?
-  return (x, y, w, h)
