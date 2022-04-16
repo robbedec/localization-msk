@@ -4,10 +4,13 @@ import cv2
 from util import (
     resize_with_aspectratio,
     random_color,
+    order_points,
 )
 
 class PaintingDetector():
-    def __init__(self, img=None):
+    def __init__(self, img=None, bbox_color=None):
+        self._bbox_color = random_color() if bbox_color is None else bbox_color
+
         if img is not None:
             self.load_image(img)
 
@@ -17,6 +20,7 @@ class PaintingDetector():
 
         # TODO: Rescale image according to its original dimensions.
         # TODO: Calculate blur metric and ignore frame if the score is low.
+        # TODO: Dont use a fixed rescale value.
         imh, imw, _ = img.shape
         self._img = resize_with_aspectratio(img, width=800)
 
@@ -62,10 +66,11 @@ class PaintingDetector():
     - display:
 
     Returns a list of candidate contours and the original image annotated with
-    the contours.
+    the contours. Eeach contour consists of four points and is returned in a
+    clock wise manner (Top-left, Top-right, Bottom-right, Bottom-left).
     """
     def contours(self, display=False):
-        canny_output = self.edgemap(display=False)
+        canny_output = self.edgemap(display=display)
         contour_results = []
 
         # Find contours and sort them by size. Ideally we only want paintings that are big enough so
@@ -78,8 +83,8 @@ class PaintingDetector():
         contours = sorted(contours, key=cv2.contourArea, reverse=True)[:25]
 
         # This may be handy later on
-        # blob_contours = np.zeros((canny_output.shape[0], canny_output.shape[1], 1), dtype=np.uint8)
-        # cv2.fillPoly(blob_contours, pts=contours, color=(255,255,255))
+        #blob_contours = np.zeros((canny_output.shape[0], canny_output.shape[1], 1), dtype=np.uint8)
+        #cv2.fillPoly(blob_contours, pts=contours, color=(255,255,255))
 
         if display:
             drawing = np.zeros((canny_output.shape[0], canny_output.shape[1], 3), dtype=np.uint8)
@@ -104,7 +109,8 @@ class PaintingDetector():
             # candidate painting frames.
             # TODO: Ask lecturers on how to find a good general value for this.
             if len(approx) == 4 and solidity > 0.6:
-                contour_results.append(approx)
+                ordered = order_points(approx.reshape((4,2))).reshape((4, 1, 2))
+                contour_results.append(ordered)
 
             # TODO: Remove this, only used for initial testing
             if display:
@@ -112,7 +118,7 @@ class PaintingDetector():
         
         # Annotate the frame
         original_copy = self._img.copy()
-        [ cv2.drawContours(original_copy, contour_results, i, random_color(), 2, cv2.LINE_8, hierarchy, 0) for i in range(len(contour_results)) ]
+        [ cv2.drawContours(original_copy, contour_results, i, self._bbox_color, 2, cv2.LINE_8, hierarchy, 0) for i in range(len(contour_results)) ]
 
         # Draw contours
         if display:
@@ -136,9 +142,11 @@ class PaintingDetector():
     
 if __name__ == '__main__':
     impath = '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Computervisie 2020 Project Database/test_pictures_msk/20190217_102133.jpg'
-    #impath = '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Computervisie 2020 Project Database/test_pictures_msk/20190217_101930.jpg'
     #impath = '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Computervisie 2020 Project Database/test_pictures_msk/20190203_110338.jpg'
     #impath = '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Computervisie 2020 Project Database/test_pictures_msk/20190217_110614.jpg'
+    #impath = '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Computervisie 2020 Project Database/test_pictures_msk/20190217_102014.jpg'
+    #impath = '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Computervisie 2020 Project Database/test_pictures_msk/20190217_102511.jpg'
+    #impath = '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Computervisie 2020 Project Database/dataset_pictures_msk/Zaal_A/20190323_111313.jpg'
     img = cv2.imread(filename=impath)
 
     detector = PaintingDetector(img)

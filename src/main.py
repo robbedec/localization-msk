@@ -27,7 +27,7 @@ def main():
 
         cv2.imshow("Image", img_with_contours)
 
-        cv2.waitKey(int(1000 / fps))
+        cv2.waitKey(int(1000 / fps / 1.5))
 
 if __name__ == '__main__':
     main()
