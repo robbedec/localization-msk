@@ -13,8 +13,15 @@ Usage:
     python3 src/benchmark.py \
         --csv '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Database_log.csv' \
         --basefolder '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Computervisie 2020 Project Database/dataset_pictures_msk' \
+        --out '/home/robbedec/repos/ugent/computervisie/computervisie-group8/src/csv/detectionproblems.csv' \
         --display 'y'
 """
+
+parser = argparse.ArgumentParser(description="My Script")
+parser.add_argument('--csv', help='Path to master CSV', required=True)
+parser.add_argument('--basefolder', help='Path to the base folder that contains the images', required=True)
+parser.add_argument('--out', help='Path to store the output csv', required=True)
+parser.add_argument('--display', help='Display intermediate images', required=False, default='y')
 
 # Calculate the intersection over union ratio for two bouning boxes
 def calculate_iou(box_1, box_2):
@@ -27,15 +34,10 @@ def calculate_iou(box_1, box_2):
 def string_to_array(val):
   return list(map(lambda x: int(x.strip()), val[1: -1].split(',')))
 
-parser = argparse.ArgumentParser(description="My Script")
-parser.add_argument('--csv', help='Path to master CSV', required=True)
-parser.add_argument('--basefolder', help='Path to the base folder that contains the images', required=True)
-parser.add_argument('--display', help='Display intermediate images', required=False, default='y')
-
 args = vars(parser.parse_args())
-
 CSV_PATH = args['csv']
 IMAGES_PATH = args['basefolder']
+OUT_PATH = args['out']
 display = args['display'] == 'y'
 
 detector = PaintingDetector(bbox_color=(0, 0, 255))
@@ -45,6 +47,7 @@ false_negatives = 0
 false_positives = 0
 
 df_paintings = pd.read_csv(CSV_PATH)
+df_detection_problems = pd.DataFrame()
 
 # Create image path
 df_paintings['image_path'] = df_paintings.apply(lambda row: os.path.join(IMAGES_PATH, row['Room'], row['Photo'] + '.jpg'), axis=1)
@@ -69,6 +72,7 @@ for impath, df_group in df_paintings.groupby('image_path'):
     if res_rescaled.shape[0] == 0:
         print('Nothing detected')
         false_negatives += len(df_group)
+        df_detection_problems.append({ 'path': impath }, ignore_index=True)
 
         if display:
             cv2.imshow('Not detected', img_with_contours)
@@ -102,10 +106,11 @@ for impath, df_group in df_paintings.groupby('image_path'):
         IOU = IOUS[0]
 
         if IOU == 0:
-          # Painting not detected.
-          print('Painting not detected')
-          false_negatives += 1
-          continue
+            # Painting not detected.
+            print('Painting not detected')
+            false_negatives += 1
+            df_detection_problems = df_detection_problems.append({ 'path': impath }, ignore_index=True)
+            continue
 
         IOU_scores.append(IOU)
         print(IOU)
@@ -118,6 +123,7 @@ for impath, df_group in df_paintings.groupby('image_path'):
             break
 
 print('Avergage intersection over union score: {}\nPaintings detected: {}\nFalse negatives: {}'.format(sum(IOU_scores) / len(IOU_scores), len(IOU_scores), false_negatives))
+df_detection_problems.to_csv(OUT_PATH)
 
 # https://docs.opencv.org/4.x/d5/d45/tutorial_py_contours_more_functions.html
 # https://answers.opencv.org/question/90455/how-to-perform-intersection-or-union-operations-on-a-rect-in-python/
