@@ -63,16 +63,20 @@ for impath, df_group in df_paintings.groupby('image_path'):
     (new_h, new_w, _) = img_with_contours.shape
     scaleY, scaleX = old_h / new_h, old_w / new_w
     
-
     # Apply scaling correction to the results. The result is a 3D tensor where the first index is a counter, the other two correspond to
     # the 4x2 representation of 4 2D points.
     # Coordinates are scaled to the size of the original image.
     res_rescaled = np.array([ np.apply_along_axis(lambda row: np.rint(np.multiply(row, [scaleX, scaleY])).astype(int), 1, c) for c in res])
-
+    
     if res_rescaled.shape[0] == 0:
         print('Nothing detected')
         false_negatives += len(df_group)
-        df_detection_problems.append({ 'path': impath }, ignore_index=True)
+
+        df_detection_problems = df_detection_problems.append({
+            'Room': df_group.iloc[0]['Room'],
+            'Photo': df_group.iloc[0]['Photo'],
+            'path': impath,
+        }, ignore_index=True)
 
         if display:
             cv2.imshow('Not detected', img_with_contours)
@@ -109,7 +113,12 @@ for impath, df_group in df_paintings.groupby('image_path'):
             # Painting not detected.
             print('Painting not detected')
             false_negatives += 1
-            df_detection_problems = df_detection_problems.append({ 'path': impath }, ignore_index=True)
+
+            df_detection_problems = df_detection_problems.append({
+                'Room': df_group.iloc[0]['Room'],
+                'Photo': df_group.iloc[0]['Photo'],
+                'path': impath,
+            }, ignore_index=True)
             continue
 
         IOU_scores.append(IOU)
@@ -123,4 +132,15 @@ for impath, df_group in df_paintings.groupby('image_path'):
             break
 
 print('Avergage intersection over union score: {}\nPaintings detected: {}\nFalse negatives: {}'.format(sum(IOU_scores) / len(IOU_scores), len(IOU_scores), false_negatives))
-df_detection_problems.to_csv(OUT_PATH)
+
+# CSV file can be used to show images that casue problem. Feed those to
+# the detector with display option True to visualize the internal images.
+if os.path.exists(OUT_PATH):
+    if input('Overwrite file? [yes|y|no|n] ').lower() in ['yes', 'y']:
+        df_detection_problems.to_csv(OUT_PATH)
+else:
+    df_detection_problems.to_csv(OUT_PATH)
+
+# TODO: Create plots (and save them as images):
+# 1. Distribution of IOC scores shown over buckets with size 10%.
+# 2. Distribution of prediction errors by museum hall number.
