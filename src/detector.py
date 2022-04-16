@@ -22,7 +22,7 @@ class PaintingDetector():
         # TODO: Calculate blur metric and ignore frame if the score is low.
         # TODO: Dont use a fixed rescale value.
         imh, imw, _ = img.shape
-        self._img = resize_with_aspectratio(img, width=800)
+        self._img = resize_with_aspectratio(img, width=500)
 
         self._img_bg = cv2.cvtColor(self._img, cv2.COLOR_BGR2GRAY)
     
@@ -36,7 +36,7 @@ class PaintingDetector():
 
     def edgemap(self, display=False):
         # Slightly blur the image to reduce noise in the edge detection.
-        img_bg_blurred = cv2.GaussianBlur(src=self._img_bg, ksize=(5,5), sigmaX=1)
+        img_bg_blurred = cv2.GaussianBlur(src=self._img_bg, ksize=(9,9), sigmaX=1)
 
         # http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.402.5899&rep=rep1&type=pdf
         # https://stackoverflow.com/questions/4292249/automatic-calculation-of-low-and-high-thresholds-for-the-canny-operation-in-open
@@ -109,7 +109,7 @@ class PaintingDetector():
             # candidate painting frames.
             # TODO: Ask lecturers on how to find a good general value for this.
             if len(approx) == 4 and solidity > 0.6:
-                ordered = order_points(approx.reshape((4,2))).reshape((4, 1, 2))
+                ordered = order_points(approx.reshape((4,2)))
                 contour_results.append(ordered)
 
             # TODO: Remove this, only used for initial testing
@@ -147,6 +147,7 @@ if __name__ == '__main__':
     #impath = '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Computervisie 2020 Project Database/test_pictures_msk/20190217_102014.jpg'
     #impath = '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Computervisie 2020 Project Database/test_pictures_msk/20190217_102511.jpg'
     #impath = '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Computervisie 2020 Project Database/dataset_pictures_msk/Zaal_A/20190323_111313.jpg'
+    impath = '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Computervisie 2020 Project Database/dataset_pictures_msk/zaal_1/IMG_20190323_111739.jpg'
     img = cv2.imread(filename=impath)
 
     detector = PaintingDetector(img)
