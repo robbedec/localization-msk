@@ -59,7 +59,7 @@ for impath, df_group in df_paintings.groupby('image_path'):
     (old_h, old_w, _) = img.shape
 
     detector.img = cv2.imread(impath)
-    res, img_with_contours = detector.contours()
+    res_rescaled, img_with_contours = detector.contours()
 
     (new_h, new_w, _) = img_with_contours.shape
     scaleY, scaleX = old_h / new_h, old_w / new_w
@@ -67,7 +67,7 @@ for impath, df_group in df_paintings.groupby('image_path'):
     # Apply scaling correction to the results. The result is a 3D tensor where the first index is a counter, the other two correspond to
     # the 4x2 representation of 4 2D points.
     # Coordinates are scaled to the size of the original image.
-    res_rescaled = np.array([ np.apply_along_axis(lambda row: np.rint(np.multiply(row, [scaleX, scaleY])).astype(int), 1, c) for c in res])
+    #res_rescaled = np.array([ np.apply_along_axis(lambda row: np.rint(np.multiply(row, [scaleX, scaleY])).astype(int), 1, c) for c in res])
     
     if res_rescaled.shape[0] == 0:
         print('Nothing detected')
