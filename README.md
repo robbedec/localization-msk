@@ -1,5 +1,11 @@
 # computervisie-group8
 
+# Install requirements
+
+```bash
+ pip3 install -r requirements.txt
+ ```
+
 # Sample usage using a Taskfile (Robbe Ubuntu, absolute paths)
 
 ```bash
@@ -79,7 +85,7 @@ function detector {
 }
 
 
-# Benchmark: ./Taskfile benchmark 0
+# Benchmark: ./Taskfile benchmark
 # Benchmark without displaying results: ./Taskfile benchmark 0
 
 function benchmark {
