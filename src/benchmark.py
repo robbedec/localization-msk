@@ -61,7 +61,7 @@ for impath, df_group in df_paintings.groupby('image_path'):
     (old_h, old_w, _) = img.shape
 
     detector.img = cv2.imread(impath)
-    res_rescaled, img_with_contours = detector.contours()
+    res, img_with_contours = detector.contours()
 
     (new_h, new_w, _) = img_with_contours.shape
     scaleY, scaleX = old_h / new_h, old_w / new_w
