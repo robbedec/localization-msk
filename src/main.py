@@ -27,7 +27,11 @@ def main():
 
         cv2.imshow("Image", img_with_contours)
 
-        cv2.waitKey(int(1000 / fps / 1.5))
+        k = cv2.waitKey(int(1000 / fps / 1.5))
+
+        if k != -1:
+            cv2.destroyAllWindows()
+            break
 
 if __name__ == '__main__':
     main()
