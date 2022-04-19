@@ -54,6 +54,8 @@ df_detection_problems = pd.DataFrame()
 df_paintings['image_path'] = df_paintings.apply(lambda row: os.path.join(IMAGES_PATH, row['Room'], row['Photo'] + '.jpg'), axis=1)
 
 for impath, df_group in df_paintings.groupby('image_path'):
+    current_false_positives = 0
+
     # Feed image to the detector and calculate painting locations.
     img = cv2.imread(impath)
     (old_h, old_w, _) = img.shape
@@ -64,30 +66,8 @@ for impath, df_group in df_paintings.groupby('image_path'):
     (new_h, new_w, _) = img_with_contours.shape
     scaleY, scaleX = old_h / new_h, old_w / new_w
     
-    # Apply scaling correction to the results. The result is a 3D tensor where the first index is a counter, the other two correspond to
-    # the 4x2 representation of 4 2D points.
-    # Coordinates are scaled to the size of the original image.
-    res_rescaled = np.array([ np.apply_along_axis(lambda row: np.rint(np.multiply(row, [scaleX, scaleY])).astype(int), 1, c) for c in res])
-    
-    if res_rescaled.shape[0] == 0:
-        print('Nothing detected')
-        false_negatives += len(df_group)
-
-        df_detection_problems = df_detection_problems.append({
-            'Room': df_group.iloc[0]['Room'],
-            'Photo': df_group.iloc[0]['Photo'],
-            'path': impath,
-        }, ignore_index=True)
-
-        if display:
-            cv2.imshow('Not detected', img_with_contours)
-            k = cv2.waitKey(0)
-            if k == 27:    # Esc key to stop
-                break
-            cv2.destroyWindow('Not detected')
-
-        continue
-
+    # Contains all ground truth boxes from the current image.
+    ground_truth = []
     for index, row in df_group.iterrows():
         ground_truth_bbox = np.array([
             string_to_array(row['Top-left']),
@@ -96,34 +76,68 @@ for impath, df_group in df_paintings.groupby('image_path'):
             string_to_array(row['Bottom-left'])
         ])
 
+        ground_truth.append(ground_truth_bbox)
+
         # Coordinates are scaled to the downsized detector image.
         # This is only done for visualization purposes.
         # The ground truth box is shown in green, the detected box in red.
         gt_bbox_rescaled = np.array([ np.apply_along_axis(lambda row: np.rint(np.divide(row, [scaleX, scaleY])).astype(int), 0, c) for c in ground_truth_bbox])
         cv2.drawContours(img_with_contours, [gt_bbox_rescaled], 0, (0, 255, 0), 2, cv2.LINE_8)
 
+    for prediction_index in range(res.shape[0]):
         # Match polygon from the results to a polygon of the database.
         # Do this by checking all detected ROI's and take the one that has a value for IOU.
         # Contours that are not in this area will have an IOU = 0.
         # The highest IOU corresponds to two matching bounding boxes.
-        IOUS = [ calculate_iou(ground_truth_bbox, res_rescaled[i]) for i in range(res_rescaled.shape[0])]
+        IOUS = [ calculate_iou(gt_box, res[prediction_index]) for gt_box in ground_truth ]
         IOUS.sort(reverse=True)
         IOU = IOUS[0]
 
         if IOU == 0:
-            # Painting not detected.
-            print('Painting not detected')
-            false_negatives += 1
+            # Detection is not a painting => False positive
+            print('FP: Detection is not a painting')
+            false_positives += 1
+            current_false_positives += 1
 
             df_detection_problems = df_detection_problems.append({
                 'Room': df_group.iloc[0]['Room'],
                 'Photo': df_group.iloc[0]['Photo'],
                 'path': impath,
+                'kind': 'FP',
             }, ignore_index=True)
+
+            if display:
+                cv2.imshow('FP: Detection is not a painting', img_with_contours)
+                k = cv2.waitKey(0)
+                cv2.destroyWindow('FP: Detection is not a painting')
+                if k == 27:    # Esc key to stop
+                    break
+
             continue
 
         IOU_scores.append(IOU)
         print(IOU)
+
+    # Calculate false negatives for current group.
+    current_false_negatives = len(df_group) - (res.shape[0] - current_false_positives)
+    false_negatives += current_false_negatives
+    for i in range(current_false_negatives):
+        print('FN: Painting not detected')
+        df_detection_problems = df_detection_problems.append({
+            'Room': df_group.iloc[0]['Room'],
+            'Photo': df_group.iloc[0]['Photo'],
+            'path': impath,
+            'kind': 'FN',
+        }, ignore_index=True)
+
+    if display and current_false_negatives > 0:
+        cv2.imshow('FN: Painting not detected', img_with_contours)
+        k = cv2.waitKey(0)
+        cv2.destroyWindow('FN: Painting not detected')
+        if k == 27:    # Esc key to stop
+            break
+
+        continue
 
     if display:
         cv2.imshow('Detected', img_with_contours)
@@ -132,7 +146,12 @@ for impath, df_group in df_paintings.groupby('image_path'):
         if k == 27:    # Esc key to stop
             break
 
-print('Avergage intersection over union score: {}\nPaintings detected: {}\nFalse negatives: {}'.format(sum(IOU_scores) / len(IOU_scores), len(IOU_scores), false_negatives))
+print('Avergage intersection over union score: {}\n \
+    Total amount of paintings: {}\n \
+    Paintings detected: {}\n \
+    False positives: {}\n \
+    False negatives: {}' \
+    .format(sum(IOU_scores) / len(IOU_scores), len(df_paintings), len(IOU_scores), false_positives, false_negatives))
 
 # CSV file can be used to show images that casue problem. Feed those to
 # the detector with display option True to visualize the internal images.
@@ -153,11 +172,13 @@ plt.savefig(os.path.join(os.path.dirname(os.path.dirname(OUT_PATH)), 'benchmark_
 plt.clf()
 
 # Distribution of prediction errors by museum hall number.
-df_problems_grouped_by_hall = df_detection_problems.groupby('Room')['Photo'].count()
-df_problems_grouped_by_hall.plot.bar()
+df_problems_grouped_by_hall = df_detection_problems.groupby(['Room', 'kind'])['Photo'].count()
 
-plt.ylabel('Amount of undetected paintings')
-plt.title('Undetected paintings grouped by hall number')
+ax = (df_detection_problems.drop(['path'], axis=1).groupby(['Room','kind']).count().unstack('kind').plot.bar(figsize=(11, 7)))
+ax.legend(['False negatives', 'False positives'])
+
+plt.ylabel('Amount of false negatives / positives')
+plt.title('Anomalies paintings grouped by hall number')
 plt.gcf().subplots_adjust(bottom=0.2)
 
 plt.savefig(os.path.join(os.path.dirname(os.path.dirname(OUT_PATH)), 'benchmark_images', 'grouped_by_hall.jpg'))

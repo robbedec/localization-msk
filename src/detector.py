@@ -146,17 +146,13 @@ class PaintingDetector():
     Apply scaling correction to the results. The result is a 3D tensor where the first index is a counter, the other two correspond to the 4x2 representation of 4 2D points.
     Coordinates are scaled to the size of the original image.  
     """
-    def scale_contour_to_original_coordinates(self,contour_results,new_shape,original_shape):
+    def scale_contour_to_original_coordinates(self, contour_results, new_shape, original_shape):
         (new_h, new_w, _) = new_shape
         (old_h,  old_w, _) = original_shape  
 
-        print(new_shape)
-        print(original_shape)
         scaleY, scaleX = old_h / new_h, old_w / new_w
 
         return np.array([np.apply_along_axis(lambda row: np.rint(np.multiply(row, [scaleX, scaleY])).astype(int), 1, c) for c in contour_results])
-
-
     
 if __name__ == '__main__':
     if len(sys.argv) != 2:
