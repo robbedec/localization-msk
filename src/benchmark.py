@@ -3,6 +3,7 @@ import numpy as np
 import os
 import cv2
 import argparse
+import matplotlib.pyplot as plt
 
 from shapely.geometry import Polygon
 
@@ -18,10 +19,10 @@ Usage:
 """
 
 parser = argparse.ArgumentParser(description="My Script")
-parser.add_argument('--csv', help='Path to master CSV', required=True)
-parser.add_argument('--basefolder', help='Path to the base folder that contains the images', required=True)
-parser.add_argument('--out', help='Path to store the output csv', required=True)
-parser.add_argument('--display', help='Display intermediate images', required=False, default='y')
+parser.add_argument('--csv', help='Path to master CSV', required=True, type=str)
+parser.add_argument('--basefolder', help='Path to the base folder that contains the images', required=True, type=str)
+parser.add_argument('--out', help='Path to store the output csv', required=True, type=str)
+parser.add_argument('--display', help='Display intermediate images', required=False, default='n', type=str)
 
 # Calculate the intersection over union ratio for two bouning boxes
 def calculate_iou(box_1, box_2):
@@ -141,6 +142,22 @@ if os.path.exists(OUT_PATH):
 else:
     df_detection_problems.to_csv(OUT_PATH)
 
-# TODO: Create plots (and save them as images):
-# 1. Distribution of IOC scores shown over buckets with size 10%.
-# 2. Distribution of prediction errors by museum hall number.
+# Distribution of IOC scores shown over buckets with size 10%.
+plt.hist(IOU_scores, bins=np.linspace(0, 1, 11), ec='black')
+plt.xticks(np.linspace(0, 1, 11))
+plt.title('Distribution of IOU scores for the detected paintings.')
+plt.xlabel('Intersection over Union score')
+plt.ylabel('Amount')
+
+plt.savefig(os.path.join(os.path.dirname(os.path.dirname(OUT_PATH)), 'benchmark_images', 'IOU_distribution.jpg'))
+plt.clf()
+
+# Distribution of prediction errors by museum hall number.
+df_problems_grouped_by_hall = df_detection_problems.groupby('Room')['Photo'].count()
+df_problems_grouped_by_hall.plot.bar()
+
+plt.ylabel('Amount of undetected paintings')
+plt.title('Undetected paintings grouped by hall number')
+plt.gcf().subplots_adjust(bottom=0.2)
+
+plt.savefig(os.path.join(os.path.dirname(os.path.dirname(OUT_PATH)), 'benchmark_images', 'grouped_by_hall.jpg'))
