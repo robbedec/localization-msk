@@ -5,7 +5,7 @@
 ```bash
 #!/bin/bash
 
-# Usage: ./Taskfile <fname>
+# Usage: ./Taskfile <function_name>
 
 function start {
     # Runs the main.py file with a selected video
