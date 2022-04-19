@@ -118,6 +118,13 @@ for impath, df_group in df_paintings.groupby('image_path'):
         IOU_scores.append(IOU)
         print(IOU)
 
+        df_detection_problems = df_detection_problems.append({
+            'Room': df_group.iloc[0]['Room'],
+            'Photo': df_group.iloc[0]['Photo'],
+            'path': impath,
+            'kind': 'TP',
+        }, ignore_index=True)
+
     # Calculate false negatives for current group.
     current_false_negatives = len(df_group) - (res.shape[0] - current_false_positives)
     false_negatives += current_false_negatives
@@ -171,10 +178,23 @@ plt.ylabel('Amount')
 plt.savefig(os.path.join(os.path.dirname(os.path.dirname(OUT_PATH)), 'benchmark_images', 'IOU_distribution.jpg'))
 plt.clf()
 
-# Distribution of prediction errors by museum hall number.
+# Distribution of prediction errors by museum hall number (including true positives).
 df_problems_grouped_by_hall = df_detection_problems.groupby(['Room', 'kind'])['Photo'].count()
 
 ax = (df_detection_problems.drop(['path'], axis=1).groupby(['Room','kind']).count().unstack('kind').plot.bar(figsize=(11, 7)))
+ax.legend(['False negatives', 'False positives', 'True positives'])
+
+plt.ylabel('Amount of false negatives / positives')
+plt.title('Anomalies paintings grouped by hall number')
+plt.gcf().subplots_adjust(bottom=0.2)
+
+plt.savefig(os.path.join(os.path.dirname(os.path.dirname(OUT_PATH)), 'benchmark_images', 'grouped_by_hall_include_TP.jpg'))
+plt.clf()
+
+# Distribution of prediction errors by museum hall number (excluding true positives).
+df_problems_grouped_by_hall = df_detection_problems.groupby(['Room', 'kind'])['Photo'].count()
+
+ax = (df_detection_problems[df_detection_problems['kind'] != 'TP'].drop(['path'], axis=1).groupby(['Room','kind']).count().unstack('kind').plot.bar(figsize=(11, 7)))
 ax.legend(['False negatives', 'False positives'])
 
 plt.ylabel('Amount of false negatives / positives')
