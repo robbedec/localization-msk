@@ -7,6 +7,7 @@ from util import (
     resize_with_aspectratio,
     random_color,
     order_points,
+    rectify_contour
 )
 
 class PaintingDetector():
@@ -25,6 +26,7 @@ class PaintingDetector():
         # TODO: Dont use a fixed rescale value.
         imh, imw, _ = img.shape
         self._img = resize_with_aspectratio(img, width=500)
+        self._original_shape = img.shape
 
         self._img_bg = cv2.cvtColor(self._img, cv2.COLOR_BGR2GRAY)
     
@@ -137,43 +139,22 @@ class PaintingDetector():
             #cv2.imshow('Blob contours', blob_contours)
             cv2.waitKey(0)
         
-        return contour_results, original_copy
+        #return contour_results, original_copy
+        return self.scale_contour_to_original_coordinates(contour_results,original_copy.shape,self._original_shape), original_copy
 
-
+    """
+    Apply scaling correction to the results. The result is a 3D tensor where the first index is a counter, the other two correspond to the 4x2 representation of 4 2D points.
+    Coordinates are scaled to the size of the original image.  
+    """
     def scale_contour_to_original_coordinates(self,contour_results,new_shape,original_shape):
         (new_h, new_w, _) = new_shape
         (old_h,  old_w, _) = original_shape  
+
+        print(new_shape)
+        print(original_shape)
         scaleY, scaleX = old_h / new_h, old_w / new_w
 
         return np.array([np.apply_along_axis(lambda row: np.rint(np.multiply(row, [scaleX, scaleY])).astype(int), 1, c) for c in contour_results])
-        
-    
-    def rectify_contour(self,src_points,img,display = False):
-        (old_h,  old_w, _) = img.shape  
-
-        min_x = min(src_points[0][0],src_points[3][0])
-        max_x = max(src_points[1][0],src_points[2][0])
-
-        min_y = min(src_points[0][1],src_points[1][1])
-        max_y = max(src_points[2][1],src_points[3][1])
-
-        src  = np.array(src_points,np.float32) # src_points are converted into a numpy array and floating points
-        dst = np.array([[min_x,min_y],[max_x,min_y],[max_x,max_y],[min_x,max_y]],np.float32) # dst array is setup with the previously defined points, this array is also converted into a numpy array and floats
-
-        transform_mat = cv2.getPerspectiveTransform(src,dst) 
-        affine_image = cv2.warpPerspective(img,M=transform_mat,dsize=(old_w,old_h))
-
-        crop_img = affine_image[min_y:max_y,min_x:max_x] # crop image
-
-
-        # Draw contours
-        if display:
-            # Show the tranformed image
-            cv2.imshow('Rectified image',affine_image)
-            cv2.imshow('Cropped image',crop_img)
-            cv2.waitKey(0)
-        
-        return affine_image,crop_img
 
 
     
@@ -189,10 +170,11 @@ if __name__ == '__main__':
 
     contour_results, original_copy = detector.contours(display=True)
 
-    contour_results_rescaled = detector.scale_contour_to_original_coordinates(contour_results,original_copy.shape,img.shape)
+    #contour_results_rescaled = detector.scale_contour_to_original_coordinates(contour_results,original_copy.shape,img.shape)
 
-    for i in  range(len(contour_results_rescaled)):
-        detector.rectify_contour(contour_results_rescaled[i],img,display=True)
+    # print(contour_results)
+    for i in  range(len(contour_results)):
+        rectify_contour(contour_results[i],img,display=True)
 
 
     #detector.find_lines()
