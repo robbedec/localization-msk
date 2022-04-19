@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+import sys
 
 from util import (
     resize_with_aspectratio,
@@ -141,13 +142,11 @@ class PaintingDetector():
         pass
     
 if __name__ == '__main__':
-    impath = '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Computervisie 2020 Project Database/test_pictures_msk/20190217_102133.jpg'
-    #impath = '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Computervisie 2020 Project Database/test_pictures_msk/20190203_110338.jpg'
-    #impath = '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Computervisie 2020 Project Database/test_pictures_msk/20190217_110614.jpg'
-    #impath = '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Computervisie 2020 Project Database/test_pictures_msk/20190217_102014.jpg'
-    #impath = '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Computervisie 2020 Project Database/test_pictures_msk/20190217_102511.jpg'
-    #impath = '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Computervisie 2020 Project Database/dataset_pictures_msk/Zaal_A/20190323_111313.jpg'
-    impath = '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Computervisie 2020 Project Database/dataset_pictures_msk/zaal_1/IMG_20190323_111739.jpg'
+    if len(sys.argv) != 2:
+        raise ValueError('Only provide a path to a video')
+
+    impath = sys.argv[1] # Filepath argument
+
     img = cv2.imread(filename=impath)
 
     detector = PaintingDetector(img)
