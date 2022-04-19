@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 import sys
+import math
 
 from util import (
     resize_with_aspectratio,
@@ -137,9 +138,44 @@ class PaintingDetector():
             cv2.waitKey(0)
         
         return contour_results, original_copy
+
+
+    def scale_contour_to_original_coordinates(self,contour_results,new_shape,original_shape):
+        (new_h, new_w, _) = new_shape
+        (old_h,  old_w, _) = original_shape  
+        scaleY, scaleX = old_h / new_h, old_w / new_w
+
+        return np.array([np.apply_along_axis(lambda row: np.rint(np.multiply(row, [scaleX, scaleY])).astype(int), 1, c) for c in contour_results])
+        
     
-    def rectify_contour(self):
-        pass
+    def rectify_contour(self,src_points,img,display = False):
+        (old_h,  old_w, _) = img.shape  
+
+        min_x = min(src_points[0][0],src_points[3][0])
+        max_x = max(src_points[1][0],src_points[2][0])
+
+        min_y = min(src_points[0][1],src_points[1][1])
+        max_y = max(src_points[2][1],src_points[3][1])
+
+        src  = np.array(src_points,np.float32) # src_points are converted into a numpy array and floating points
+        dst = np.array([[min_x,min_y],[max_x,min_y],[max_x,max_y],[min_x,max_y]],np.float32) # dst array is setup with the previously defined points, this array is also converted into a numpy array and floats
+
+        transform_mat = cv2.getPerspectiveTransform(src,dst) 
+        affine_image = cv2.warpPerspective(img,M=transform_mat,dsize=(old_w,old_h))
+
+        crop_img = affine_image[min_y:max_y,min_x:max_x] # crop image
+
+
+        # Draw contours
+        if display:
+            # Show the tranformed image
+            cv2.imshow('Rectified image',affine_image)
+            cv2.imshow('Cropped image',crop_img)
+            cv2.waitKey(0)
+        
+        return affine_image,crop_img
+
+
     
 if __name__ == '__main__':
     if len(sys.argv) != 2:
@@ -151,5 +187,12 @@ if __name__ == '__main__':
 
     detector = PaintingDetector(img)
 
-    detector.contours(display=True)
+    contour_results, original_copy = detector.contours(display=True)
+
+    contour_results_rescaled = detector.scale_contour_to_original_coordinates(contour_results,original_copy.shape,img.shape)
+
+    for i in  range(len(contour_results_rescaled)):
+        detector.rectify_contour(contour_results_rescaled[i],img,display=True)
+
+
     #detector.find_lines()
