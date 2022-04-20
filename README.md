@@ -53,6 +53,15 @@ function generatekeypoints {
     python3 src/generate_keypoints.py ${images} ${csv_path}
 }
 
+function matcher {
+
+    path_test_image='data/test_images/Screenshot 2022-04-20 at 21.23.44.png'
+    directory_database='data/Database'
+    csv_path='src/data/keypoints.csv'
+
+    python3 src/matcher.py "${path_test_image}" ${directory_database} ${csv_path}
+}
+
 "$@"
 ```
 
@@ -119,6 +128,15 @@ function generatekeypoints {
     csv_path='src/data/keypoints.csv'
 
     python3 src/generate_keypoints.py ${images} ${csv_path}
+}
+
+function matcher {
+
+    path_test_image='data/test_images/Screenshot 2022-04-20 at 21.23.44.png'
+    directory_database='data/Database'
+    csv_path='src/data/keypoints.csv'
+
+    python3 src/matcher.py "${path_test_image}" ${directory_database} ${csv_path}
 }
 
 "$@"

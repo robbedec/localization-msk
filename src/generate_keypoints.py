@@ -10,7 +10,7 @@ import sys
 def generate_csv(directory_images,csv_path):
     result = []
     # stop = 0
-
+    # count = 0
     for file in os.listdir(directory_images):
         filename = os.fsdecode(file)
         print(filename)
@@ -36,15 +36,23 @@ def generate_csv(directory_images,csv_path):
         keypoints = np.array(keypoints).tolist()
         descriptors = np.array(descriptors).tolist()
 
+        parts = filename.split("__")
+        photo = parts[1][4:]
+        painting_number = int(parts[2][:2])
+        
+        #print(painting_number)
 
-        result.append({'id':filename, 'keypoints': json.dumps(keypoints), 'descriptors':  json.dumps(descriptors)})
-
+        result.append({'id':filename, 'keypoints': json.dumps(keypoints), 'descriptors':  json.dumps(descriptors),  'room':  parts[0], 'photo': photo, 'painting_number': painting_number})
+        # count += 1
         # if stop == 5:
         #     break
         # stop+=1
 
     df = pd.DataFrame(result)
+    print(df.shape[0])
     df.to_csv(csv_path)  
+
+    # print(count)
 
 
 

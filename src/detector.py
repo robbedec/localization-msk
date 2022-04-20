@@ -1,7 +1,9 @@
+from cv2 import find4QuadCornerSubpix
 import numpy as np
 import cv2
 import sys
 import math
+from matcher import PaintingMatcher
 
 from util import (
     resize_with_aspectratio,
@@ -164,13 +166,34 @@ if __name__ == '__main__':
 
     detector = PaintingDetector(img)
 
-    contour_results, original_copy = detector.contours(display=True)
+    contour_results, original_copy = detector.contours(display=False)
 
     #contour_results_rescaled = detector.scale_contour_to_original_coordinates(contour_results,original_copy.shape,img.shape)
 
     # print(contour_results)
+
+    matcher  = PaintingMatcher("/Users/lennertsteyaert/Documents/GitHub/computervisie-group8/src/data/keypoints.csv","/Users/lennertsteyaert/Documents/GitHub/computervisie-group8/data/Database")
+
+    
     for i in  range(len(contour_results)):
-        rectify_contour(contour_results[i],img,display=True)
+        affine_image,crop_img = rectify_contour(contour_results[i],img,display=False)
+        soft_matches = matcher.match(crop_img,display=True)
+
+        #print(soft_matches)
+        best_match = soft_matches[0]
+
+        room = matcher.get_room(best_match[0])
+
+        photo = matcher.get_photo(best_match[0])
+
+        painting_number = matcher.get_painting_number(best_match[0])
+        
+        print(f"Room: {room} photo: {photo} number: {painting_number}")
+
+
+    
+
+    
 
 
     #detector.find_lines()
