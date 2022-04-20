@@ -101,5 +101,15 @@ function benchmark {
         --display ${display}
 }
 
+# Generate keypoints: ./Taskfile generatekeypoints
+
+function generatekeypoints {
+
+    images='data/Database'
+    csv_path='src/data/keypoints.csv'
+
+    python3 src/generate_keypoints.py ${images} ${csv_path}
+}
+
 "$@"
 ```

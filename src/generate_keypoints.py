@@ -1,25 +1,21 @@
 import cv2
 import os
-import csv
 import numpy as np
 import json
+import pandas as pd
+import sys
 
 
 
-directory = os.fsencode("data/Database")
-
-
-def generate_csv():
-    global directory
-
+def generate_csv(directory_images,csv_path):
     result = []
-    #stop = 0
+    # stop = 0
 
-    for file in os.listdir(directory):
+    for file in os.listdir(directory_images):
         filename = os.fsdecode(file)
         print(filename)
 
-        img = cv2.imread(os.fsdecode(directory) + "/" + filename)
+        img = cv2.imread(os.fsdecode(directory_images) + "/" + filename)
         detector = cv2.ORB_create(nfeatures=100)
 
         img_keypoints, img_descriptors = detector.detectAndCompute(img,None)
@@ -45,19 +41,18 @@ def generate_csv():
 
         # if stop == 5:
         #     break
-        #stop+=1
+        # stop+=1
 
-
-    print(result)
-
-    with open('src/data/keypoints.csv', mode='w') as csv_file:
-        fieldnames = ['id','keypoints','descriptors']
-        writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
-        writer.writeheader()
-
-        for key in result:
-            writer.writerow(key)
+    df = pd.DataFrame(result)
+    df.to_csv(csv_path)  
 
 
 
-generate_csv()
+if __name__ == '__main__':
+    if len(sys.argv) != 3:
+        raise ValueError('Only provide a path to a video')
+
+    directory_images = os.fsencode(sys.argv[1])   # data/Database
+    csv_path = sys.argv[2] # 'src/data/keypoints_2.csv'
+
+    generate_csv(directory_images,csv_path)
