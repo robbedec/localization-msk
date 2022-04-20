@@ -43,6 +43,16 @@ function benchmark {
         --display ${display}
 }
 
+# Generate keypoints: ./Taskfile generatekeypoints
+
+function generatekeypoints {
+
+    images='/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Database'
+    csv_path='/home/robbedec/repos/ugent/computervisie/computervisie-group8/src/data/keypoints.csv'
+
+    python3 src/generate_keypoints.py ${images} ${csv_path}
+}
+
 "$@"
 ```
 
