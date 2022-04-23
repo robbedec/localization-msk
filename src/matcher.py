@@ -1,3 +1,4 @@
+from types import NoneType
 import cv2
 import os
 import numpy as np
@@ -60,9 +61,10 @@ class PaintingMatcher():
 
 
         distances = []
-
-        for i in range(self.df.shape[0]):
-            matches = self.bf.match(self.df['descriptors'][i], des_t)
+        if type(des_t) == NoneType:
+            return []
+        for i, desc in enumerate(self.df['descriptors']):
+            matches = self.bf.match(desc, des_t)
             matches = sorted(matches, key = lambda x:x.distance)
 
             sum = 0
