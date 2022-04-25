@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import sys
 
 class FrameProcessor():
     def __init__(self, data_file, frame_shape):
@@ -110,11 +111,14 @@ if __name__ == '__main__':
     # FrameProcessor.calibrate_camera(vid_path, calib_file, True)
 
 
-    # Sample usage: only use for videos taken with a gopro
     # TODO: navragen als de bolle lijnen volledig recht gemaakt kunnen worden door meer datapunten te geven
     # aan de calibratie.
-    gopro_video = '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/videos/gopro/MSK_15.mp4'
-    calib_file = '/home/robbedec/repos/ugent/computervisie/computervisie-group8/src/data/gopro-M.npy'
+    if len(sys.argv) != 3:
+        print('Provide gopro file and calibration file')
+        exit()
+
+    gopro_video = sys.argv[1]
+    calib_file = sys.argv[2]
     
     cap = cv2.VideoCapture(gopro_video)
     width  = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
