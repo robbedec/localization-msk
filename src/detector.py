@@ -161,17 +161,18 @@ if __name__ == '__main__':
         raise ValueError('Only provide a path to a video')
 
     impath = sys.argv[1] # Filepath argument
-
-    img = cv2.imread(filename=impath)
-
+    img = cv2.imread(impath)
+    
     detector = PaintingDetector(img)
-
     contour_results, original_copy = detector.contours(display=False)
 
-    #contour_results_rescaled = detector.scale_contour_to_original_coordinates(contour_results,original_copy.shape,img.shape)
+    # TODO: dit best allemaal verplaatsen naar een sample file
+    # want het wordt snel onoverzichtelijk.
+    # Misschien zelfs naar main.py omdat dit werkelijke functionaliteit is.
 
-    # print(contour_results)
-
+    #directory_database = '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Database_paintings/Database'
+    #csv_path='/home/robbedec/repos/ugent/computervisie/computervisie-group8/src/data/robbetest.csv'
+    #matcher = PaintingMatcher(csv_path, directory_database)
     matcher  = PaintingMatcher("/Users/lennertsteyaert/Documents/GitHub/computervisie-group8/src/data/keypoints.csv","/Users/lennertsteyaert/Documents/GitHub/computervisie-group8/data/Database")
 
     
@@ -179,7 +180,6 @@ if __name__ == '__main__':
         affine_image,crop_img = rectify_contour(contour_results[i],img,display=False)
         soft_matches = matcher.match(crop_img,display=True)
 
-        #print(soft_matches)
         best_match = soft_matches[0]
 
         room = matcher.get_room(best_match[0])
@@ -189,11 +189,3 @@ if __name__ == '__main__':
         painting_number = matcher.get_painting_number(best_match[0])
         
         print(f"Room: {room} photo: {photo} number: {painting_number}")
-
-
-    
-
-    
-
-
-    #detector.find_lines()
