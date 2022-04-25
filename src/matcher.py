@@ -1,15 +1,55 @@
-from types import NoneType
 import cv2
-import os
 import numpy as np
-import json
 import pandas as pd
 import sys
+import os
+import json
 
-import os.path
-from os import path
+from types import NoneType
+
+"""
+# TODO: implement
+import torch
+import torchvision.models as models
+import torchvision.transforms as transforms
+from PIL import Image
+from torch.autograd import Variable as V
+class CustomResNet():
+    def __init__(self):
 
 
+        self.model = models.resnet18()
+        self.model.eval()
+    
+    def get_feature_vector(self, img_path):
+        # https://towardsdatascience.com/recommending-similar-images-using-pytorch-da019282770c
+
+        feature_layer = self.model.avgpool
+        feature_vector = torch.zeros(1, 512, 1, 1)
+
+        # Define image manipulations and process image using standard ResNet parameters.
+        img = Image.open(img_path)
+        centre_crop = transforms.Compose([
+            #transforms.Resize((256,256)),
+            #transforms.CenterCrop(224),
+            transforms.RandomResizedCrop(224),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ])
+        processed_img = V(centre_crop(img).unsqueeze(0))
+        
+        # Register hook in the forward pass that copies the feature vector out
+        # of the Neural Net.
+        def copy_hook(m, i, o):
+            feature_vector.copy_(o.data)
+        h = feature_layer.register_forward_hook(copy_hook)
+
+        # Apply forward pass
+        fp = self.model.forward(processed_img)
+        
+        h.remove()
+        return feature_vector.numpy()[0, :, 0, 0]
+"""
 
 class PaintingMatcher():
     def __init__(self, path=None, directory=None, features=100):
@@ -21,12 +61,51 @@ class PaintingMatcher():
             self.bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
         else:
             raise ValueError('Path is None.')
+    
+    @staticmethod
+    def generate_keypoints(directory_images,csv_path):
+        # TODO: extend with feature vector from neural net
+        result = []
 
+        for file in os.listdir(directory_images):
+            filename = os.fsdecode(file)
+            print(filename)
+
+            img = cv2.imread(os.path.join(os.fsdecode(directory_images),filename))
+            detector = cv2.ORB_create(nfeatures=100)
+
+            img_keypoints, img_descriptors = detector.detectAndCompute(img,None)
+
+            keypoints = []
+            descriptors = []
+
+            for i in range(len(img_keypoints)):
+                point = img_keypoints[i]
+                descriptor  = img_descriptors[i]
+                temp_keypoint = (point.pt, point.size, point.angle, point.response, point.octave, 
+                    point.class_id) 
+
+                keypoints.append(temp_keypoint)
+                descriptors.append(descriptor)
+
+            keypoints = np.array(keypoints).tolist()
+            descriptors = np.array(descriptors).tolist()
+
+            parts = filename.split("__")
+            photo = parts[1][4:]
+            painting_number = int(parts[2][:2])
+            
+            result.append({'id':filename, 'keypoints': json.dumps(keypoints), 'descriptors':  json.dumps(descriptors),  'room':  parts[0], 'photo': photo, 'painting_number': painting_number})
+
+        df = pd.DataFrame(result)
+        df.to_csv(csv_path)  
+
+    @staticmethod
     def convert_descriptors(descriptors):
         descriptors = np.array(pd.read_json(descriptors),dtype=np.uint8)
         return descriptors
 
-
+    @staticmethod
     def convert_keypoints(keypoint_array):
         keypoints_result = []
         keypoint_array  =  np.array(pd.read_json(keypoint_array))
@@ -44,7 +123,6 @@ class PaintingMatcher():
         return keypoints_result
     
     def load_keypoints(self, data_path):
-
         # if not path.exist(data_path):
         #     raise ValueError('Invalid path.')
 
@@ -52,7 +130,7 @@ class PaintingMatcher():
         self.df['descriptors'] = self.df['descriptors'].apply(lambda x: PaintingMatcher.convert_descriptors(x))
         self.df['keypoints'] = self.df['keypoints'].apply(lambda x: PaintingMatcher.convert_keypoints(x))
 
-    def  match(self,img_t, display=False):
+    def match(self,img_t, display=False):
         #kp_t = self.orb.detect(img_t, None)
         kp_t, des_t = self.orb.detectAndCompute(img_t,  None)
 
@@ -132,3 +210,7 @@ if __name__ == '__main__':
     result = matcher.match(img)
 
     print(result)
+
+    # Sample to create keypoint file
+    # directory_images = os.fsencode(sys.argv[1])   # data/Database
+    # csv_path = sys.argv[2] # 'src/data/keypoints_2.csv'
