@@ -4,8 +4,13 @@ import numpy as np
 class FrameProcessor():
     def __init__(self, data_file, frame_shape):
         """
-        - frame_shape: Tuple (W,H) of the camera 
+        Load the camera parameters from a given file.
+
+        - data_file: path to the file that contains the python objects of
+                     the camera matrix etc.
+        - frame_shape: Tuple (W,H) of the camera frames.
         """
+
         with open(data_file, 'rb') as f:
             self.mtx = np.load(f)
             self.dist = np.load(f)
@@ -20,6 +25,7 @@ class FrameProcessor():
         dst = cv2.undistort(src=img, cameraMatrix=self.mtx, distCoeffs=self.dist, newCameraMatrix=self.refined_mtx)
 
         # Crop image to ROI
+        # The undistort may cause invalid pixels (closer to the edges).
         x, y, w, h = self.roi
         dst = dst[y:y+h, x:x+w]
 
@@ -105,6 +111,8 @@ if __name__ == '__main__':
 
 
     # Sample usage: only use for videos taken with a gopro
+    # TODO: navragen als de bolle lijnen volledig recht gemaakt kunnen worden door meer datapunten te geven
+    # aan de calibratie.
     gopro_video = '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/videos/gopro/MSK_15.mp4'
     calib_file = '/home/robbedec/repos/ugent/computervisie/computervisie-group8/src/data/gopro-M.npy'
     
