@@ -147,15 +147,19 @@ function localise {
 }
 
 function test {
+    directory_database='data/Database'
+    csv_path='src/data/keypoints.csv'
+
     # Runs the main.py file with a selected video
     if [ $# -eq 0 ]; then
         #vid_path='data/videos/smartphone/MSK_03.mp4'
-        vid_path='../data/videos/smartphone/MSK_03.mp4'
+        vid_path='data/videos/smartphone/MSK_03.mp4'
+
 
         echo "No arguments supplied, playing default video @ ${vid_path}"
-        python3 src/test.py ${vid_path}
+        python3 src/test.py ${vid_path} ${directory_database} ${csv_path}
     else
-        python3 src/test.py "$1"
+        python3 src/test.py "$1" ${directory_database} ${csv_path}
     fi
 }
 
