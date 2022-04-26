@@ -16,7 +16,7 @@ from util import (
 )
 
 class Localiser():
-    def __init__(self, matcher=PaintingMatcher("src/data/keypoints.csv","../data/Database"), connectivity_matrix=None) -> None:
+    def __init__(self, matcher=PaintingMatcher("src/data/keypoints.csv","data/Database"), connectivity_matrix=None) -> None:
         self.matcher = matcher
         self.previous = "Unknown Location"
         #if connectivity_matrix == None:

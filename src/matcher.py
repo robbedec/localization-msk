@@ -140,18 +140,20 @@ class PaintingMatcher():
         self.df['keypoints'] = self.df['keypoints'].apply(lambda x: PaintingMatcher.convert_keypoints(x))
 
     def match(self,img_t, display=False):
-        #kp_t = self.orb.detect(img_t, None)
         kp_t, des_t = self.orb.detectAndCompute(img_t,  None)
 
         lowest_distance = 10000000000.0
         index = 0
 
 
-        distances = []
-        if type(des_t) == None:
+        if not type(des_t) == np.ndarray:
             return []
+
+        distances = []
         for i, desc in enumerate(self.df['descriptors']):
+
             matches = self.bf.match(desc, des_t)
+
             matches = sorted(matches, key = lambda x:x.distance)
 
             sum = 0
