@@ -11,8 +11,6 @@ import torchvision.transforms as transforms
 from PIL import Image
 from torch.autograd import Variable as V
 
-# Is dit nog nodig @Lennert?
-NoneType = type(None)
 
 class CustomResNet():
     def __init__(self):
@@ -150,7 +148,7 @@ class PaintingMatcher():
 
 
         distances = []
-        if type(des_t) == NoneType:
+        if type(des_t) == None:
             return []
         for i, desc in enumerate(self.df['descriptors']):
             matches = self.bf.match(desc, des_t)

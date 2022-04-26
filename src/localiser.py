@@ -1,5 +1,4 @@
 #from cv2 import find4QuadCornerSubpix
-from types import NoneType
 import numpy as np
 import cv2
 import sys
@@ -26,14 +25,14 @@ class Localiser():
         #for r in self.connectivity_matrix:
         #    print(r)
 
-    def localise(self, image, contours_list=[]):
+    def localise(self, image, contours_list=[], display=False):
         if len(contours_list) == 0:
             return [(self.previous, 0)]
 
         room_scores = {}
         for contour in contours_list:
-            affine_image,crop_img = rectify_contour(contour, image, display=False)
-            soft_matches = self.matcher.match(crop_img,display=False)
+            affine_image,crop_img = rectify_contour(contour, image, display=display)
+            soft_matches = self.matcher.match(crop_img,display=display)
             print(soft_matches[0:3])
             for m in soft_matches[0:3]:
                 room = self.matcher.get_room(m[0])
