@@ -1,4 +1,4 @@
-from cv2 import find4QuadCornerSubpix
+#from cv2 import find4QuadCornerSubpix
 import numpy as np
 import cv2
 import sys
@@ -174,11 +174,12 @@ if __name__ == '__main__':
     #csv_path='/home/robbedec/repos/ugent/computervisie/computervisie-group8/src/data/robbetest.csv'
     #matcher = PaintingMatcher(csv_path, directory_database)
     matcher  = PaintingMatcher("/Users/lennertsteyaert/Documents/GitHub/computervisie-group8/src/data/keypoints.csv","/Users/lennertsteyaert/Documents/GitHub/computervisie-group8/data/Database")
+    #matcher  = PaintingMatcher("data/keypoints.csv","../../data/Database")
 
     
     for i in  range(len(contour_results)):
         affine_image,crop_img = rectify_contour(contour_results[i],img,display=False)
-        soft_matches = matcher.match(crop_img,display=True)
+        soft_matches = matcher.match(crop_img,display=False)
 
         best_match = soft_matches[0]
 

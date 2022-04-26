@@ -6,8 +6,10 @@ import sys
 import math
 from matcher import PaintingMatcher
 from detector import PaintingDetector
+from graph import Graph
 
 from util import (
+    generate_graph,
     resize_with_aspectratio,
     random_color,
     order_points,
@@ -15,9 +17,14 @@ from util import (
 )
 
 class Localiser():
-    def __init__(self, matcher=PaintingMatcher("src/data/keypoints.csv","../data/Database")) -> None:
+    def __init__(self, matcher=PaintingMatcher("src/data/keypoints.csv","../data/Database"), connectivity_matrix=None) -> None:
         self.matcher = matcher
         self.previous = "Unknown Location"
+        #if connectivity_matrix == None:
+        #    connectivity_matrix = generate_graph() 
+        #self.connectivity_matrix = connectivity_matrix
+        #for r in self.connectivity_matrix:
+        #    print(r)
 
     def localise(self, image, contours_list=[]):
         if len(contours_list) == 0:
@@ -26,12 +33,12 @@ class Localiser():
         room_scores = {}
         for contour in contours_list:
             affine_image,crop_img = rectify_contour(contour, image, display=False)
-            soft_matches = self.matcher.match(crop_img,display=True)
-            
-            for m in soft_matches[0:4]:
+            soft_matches = self.matcher.match(crop_img,display=False)
+            print(soft_matches[0:3])
+            for m in soft_matches[0:3]:
                 room = self.matcher.get_room(m[0])
 
-                # Divide constant by distance, lower distance = bigger number
+                # Divide constant by distance; lower distance = bigger number
                 # This way, matches with similar distance get similar scores
                 room_scores[room] = room_scores.get(room, 0) + 1000/m[1]  
         
@@ -54,6 +61,7 @@ class Localiser():
 
 
 if __name__ == '__main__':
+    
     if len(sys.argv) != 2:
         raise ValueError('Only provide a path to an image')
 
@@ -68,6 +76,8 @@ if __name__ == '__main__':
     #contour_results_rescaled = detector.scale_contour_to_original_coordinates(contour_results,original_copy.shape,img.shape)
 
     localiser = Localiser()
+
     room_scores_ordered = localiser.localise(img, contour_results)
     print(room_scores_ordered)
     print("prediction: " + room_scores_ordered[0][0])
+    
