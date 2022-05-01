@@ -30,9 +30,9 @@ def test(video_path,database,csv_path):
         contour_results, img_with_contours = detector.contours(display=False)
         #contour_results_rescaled = detector.scale_contour_to_original_coordinates(contour_results,img_with_contours.shape,img.shape)
 
-        
         room_scores_ordered = localiser.localise(img, contour_results)
-        cv2.imshow(room_scores_ordered[0][0], img_with_contours)
+        cv2.imshow("video", img_with_contours)
+        #print(room_scores_ordered[0][0])
 
         k = cv2.waitKey(int(1000 / fps / 1.5))
 

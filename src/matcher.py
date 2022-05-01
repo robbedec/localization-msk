@@ -64,7 +64,6 @@ class PaintingMatcher():
 
         for file in os.listdir(directory_images):
             filename = os.fsdecode(file)
-            print(filename)
 
             img_path = os.path.join(os.fsdecode(directory_images), filename)
             img = cv2.imread(img_path)
@@ -171,13 +170,11 @@ class PaintingMatcher():
         distances = sorted(distances,key=lambda t:t[1])
 
         img_path = os.path.join(self.directory, self.df.id[index])
-        print(img_path)
         img = cv2.imread(img_path, flags = cv2.IMREAD_COLOR)
         # matches = self.bf.match(self.df[self.df.id == name].descriptors[0], des_t)
         matches = self.bf.match(self.df.descriptors[index], des_t)
 
         matches = sorted(matches, key = lambda x:x.distance)
-        print(len(matches))
         result = cv2.drawMatches(img, self.df.keypoints[index], img_t, kp_t, matches[:20], None)
 
         if(display):
