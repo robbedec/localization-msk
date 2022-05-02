@@ -1,4 +1,5 @@
 #from hmmlearn.hmm import GaussianHMM
+import enum
 from graph import Graph
 from util import generate_graph
 from scipy.stats import norm
@@ -6,8 +7,69 @@ import numpy as np
 import cv2 as cv
 
 
+class HMM():
+    def __init__(self, hidden_layers) -> None:
+        self.hidden_layers = hidden_layers
+        self.stat_distr = self.__calculateStationaryDistribution()
+        self.currentOdds = 1
+        self.prev_X = None
+    
+    @staticmethod
+    def build(connectivityMatrix):
+        dm = createDistanceMatrix(connectivityMatrix)
+        wm = createWeightedMatrix(dm)
+        return HMM(wm)
+    
+    def getOptimalPrediction(self, frame_room_prob):
+        ## Return False if list isn't same size
+        if len(frame_room_prob) != len(self.hidden_layers):
+            return False
 
+        
+        best_pred = (0, None)
+        prev_X_list = []
+        ## Use stationary distribution on first run
+        if self.prev_X == None:
+            prev_X_list = self.stat_distr
+        else:
+            prev_X_list = self.hidden_layers[self.prev_X]
 
+        ## Calculate the optimal prediction
+        for i, room_prob in enumerate(frame_room_prob):
+            pred = self.__calculateOdds(self.currentOdds, prev_X_list[i], room_prob)
+            if pred > best_pred[0]:
+                best_pred = (pred, i)
+        self.prev_X = best_pred[1]
+        return best_pred
+    
+    def __calculateStationaryDistribution(self):
+        matrix_transposed = np.array(self.hidden_layers).T
+        eigenvals, eigenvects = np.linalg.eig(matrix_transposed)
+        idx = np.isclose(eigenvals, 1)
+        target_eigenvect = eigenvects[:, idx]
+        target_eigenvect = target_eigenvect[:, 0]
+        stat_distr = target_eigenvect / sum(target_eigenvect)
+        return stat_distr
+
+    def __calculateOdds(self, current_odds, P_X, P_YX):
+        return current_odds * P_X * P_YX
+    
+        """
+        print(obs_var_matrix)
+        for row in obs_var_matrix:
+            contour_idx = []
+            for i, val in enumerate(row):
+                if val != 0:
+                    contour_idx.append(i)
+            idx_list.append(contour_idx)
+        stat_distr = getStationaryDistribution(hidden_states)
+        print(idx_list)
+        idx_combinations = [list(itertools.combinations_with_replacement(row, r=len(row))) for row in idx_list]
+        idx_cart_product = [list(itertools.product(row, repeat=len(row))) for row in idx_list]
+
+        print(idx_combinations)
+        print(idx_cart_product)
+        """
 def createDistanceMatrix(connectivityMatrix):
     length = len(connectivityMatrix)
     dm = [row.copy() for row in connectivityMatrix]
@@ -35,23 +97,6 @@ def createWeightedMatrix(distanceMatrix):
         row /= sum
     return wm
 
-def getHiddenStates():
-    g = generate_graph()
-    cm = g.getConnectivityMatrix()
-    dm = createDistanceMatrix(cm)
-    wm = createWeightedMatrix(dm)
-    return wm
-
-def getStationaryDistribution(hidden_states):
-    matrix_transposed = np.array(hidden_states).T
-    eigenvals, eigenvects = np.linalg.eig(matrix_transposed)
-
-    idx = np.isclose(eigenvals, 1)
-    target_eigenvect = eigenvects[:, idx]
-    target_eigenvect = target_eigenvect[:, 0]
-    stat_distr = target_eigenvect / sum(target_eigenvect)
-    return stat_distr
-
 def printMatrix(matrix):
     for row in matrix:
         print(row)
@@ -67,7 +112,7 @@ if __name__ == '__main__':
     printMatrix(cm)
     print("\n\nDistance Matrix:")
     printMatrix(dm)
-    print("\n\nWeightedMatrix: ")
+    print("\n\nWeightedMatrix (= hidden layers): ")
     printMatrix(wm)
     print(sum(wm[0]))
 

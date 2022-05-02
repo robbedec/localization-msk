@@ -30,9 +30,10 @@ def test(video_path,database,csv_path):
         contour_results, img_with_contours = detector.contours(display=False)
         #contour_results_rescaled = detector.scale_contour_to_original_coordinates(contour_results,img_with_contours.shape,img.shape)
 
-        room_scores_ordered = localiser.localise(img, contour_results)
+        room_prediction = localiser.localise_use_all(img, contour_results)
+        txt = "Zaal: " + room_prediction
+        cv2.putText(img=img_with_contours, text=txt, org=(50, 250), fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=2, color=(0, 255, 0), thickness=2)
         cv2.imshow("video", img_with_contours)
-        #print(room_scores_ordered[0][0])
 
         k = cv2.waitKey(int(1000 / fps / 1.5))
 

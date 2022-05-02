@@ -9,9 +9,7 @@ from matcher import PaintingMatcher
 from detector import PaintingDetector
 from graph import Graph
 from scipy import linalg
-from hmm import (getHiddenStates, getStationaryDistribution)
-import itertools
-
+from hmm import HMM
 from util import (
     generate_graph,
     resize_with_aspectratio,
@@ -27,14 +25,76 @@ class Localiser():
 
     def __init__(self, matcher=PaintingMatcher("src/data/keypoints.csv","../data/Database"), graph=None) -> None:
         self.matcher = matcher
-        #name, score, distances
-        self.previous = ("Unknown Location", 0, [])
+        self.previous = "..."
         if graph == None:
-            graph = generate_graph() 
+            graph = generate_graph()
         self.graph = graph
         self.connectivity_matrix = self.graph.getConnectivityMatrix()
         self.room_prob = np.ones(len(self.connectivity_matrix))
+        self.hmm = HMM.build(self.connectivity_matrix)
     
+    def localise_use_all(self, image, contours_list=[], display=False):
+        if len(contours_list) == 0:
+            return self.previous
+
+        dist_list = []
+        for contour in contours_list:
+            affine_image,crop_img = rectify_contour(contour, image, display=display)
+            soft_matches = self.matcher.match(crop_img,display=display)
+            if len(soft_matches) == 0:
+                continue
+            contour_room_dist = self.getMatchingDistances(soft_matches, max=len(self.connectivity_matrix))
+            dist_list.append(contour_room_dist)
+
+        # Return previous result if there are no matches
+        if len(dist_list) == 0:
+            return self.previous
+        
+        # Calculate the chance that the frame is located in a room (for every room)
+        room_odds = self.calculateRoomOdds(dist_list)
+
+        room_pred = self.hmm.getOptimalPrediction(room_odds)
+        self.previous = self.graph.getVertices()[room_pred[1]]
+        return self.previous
+    
+    def calculateRoomOdds(self, distance_list):
+        if len(distance_list) > 1:
+            for contour_room_dist in distance_list[1:]:
+                distance_list[0] += contour_room_dist
+
+        max_dist = max(distance_list[0])
+        dist_sum = 0
+        for i, val in enumerate(distance_list[0]):
+            if val != 0:
+                new_val = (max_dist - val + 1)
+                distance_list[0][i] = new_val
+                dist_sum += new_val
+        distance_list[0]/=dist_sum
+        return distance_list[0]
+            
+
+    def getMatchingDistances(self, soft_matches, max=3):
+        
+        room_dist_list = np.zeros(len(self.connectivity_matrix), np.float32)
+        room_count = 0
+        idx = 0
+        while (room_count < max) & (idx < len(soft_matches)):
+            m = soft_matches[idx]
+            room = self.matcher.get_room(m[0])
+            room_name = room.split("_")[1]
+            if(room_name == "V"):   ## Staat niet op grondplan? -> vragen
+                idx +=1
+                continue
+
+            matrix_index = self.graph.getVertices().index(room_name)
+            if room_dist_list[matrix_index] == 0:
+                room_dist_list[matrix_index] = m[1]
+                room_count +=1
+            idx+=1
+        return room_dist_list
+    
+    ## Cleanup coming soon :) ##
+    """ 
     def localise_v2(self, image, contours_list=[], display=False):
         if len(contours_list) == 0:
             return [self.previous]
@@ -74,26 +134,11 @@ class Localiser():
         if len(prob_list) == 0:
             return [(self.previous, 0)]
         obs_var_matrix = np.array(prob_list).transpose()
-        hidden_states = getHiddenStates()
         self.calculateHMM(hidden_states, prob_list)
-    
-    
+    """
+    """
     def calculateHMM(self, hidden_states, obs_var_matrix):
-        idx_list = []
-        print(obs_var_matrix)
-        for row in obs_var_matrix:
-            contour_idx = []
-            for i, val in enumerate(row):
-                if val != 0:
-                    contour_idx.append(i)
-            idx_list.append(contour_idx)
-        stat_distr = getStationaryDistribution(hidden_states)
-        print(idx_list)
-        idx_combinations = [list(itertools.combinations_with_replacement(row, r=len(row))) for row in idx_list]
-        idx_cart_product = [list(itertools.product(row, repeat=len(row))) for row in idx_list]
-
-        print(idx_combinations)
-        print(idx_cart_product)
+    
         
         P_YX_list = []
         for i, row in enumerate(idx_combinations):
@@ -106,27 +151,33 @@ class Localiser():
             P_YX_list.append(comb_P_YX)
         print(P_YX_list)
         
+
         for row in idx_cart_product:
             for i, comb in enumerate(row):
+                P_YX = obs_var_matrix[i][comb[0]]
                 P_X = stat_distr[comb[0]]
-                for j, idx in enumerate(comb[1:]):
-                    P_X *= 
-            
+                prev = comb[0]
+                for idx in comb[1:]:
+                    P_YX *= obs_var_matrix[i][idx]
+                    P_X *= hidden_states[prev][idx]
+                    prev = idx
+        
+        """ 
 
         #P_YX = 
 
         
         #print(stat_distr[0])
         #print(sum(hidden_states[0]*stat_distr[0]))
-        """
+    """
         test = np.array([[0.5, 0.3, 0.2],
                 [0.4, 0.2, 0.4],
                 [0.0, 0.3, 0.7]], np.float32)
-                """
+    """
         
         
         
-    
+    """
     def localise(self, image, contours_list=[], display=False):
 
         if len(contours_list) == 0:
@@ -176,6 +227,7 @@ class Localiser():
         for i, edge in enumerate(con_matrix[index]):
             if edge == 1:
                 self.room_prob[i] = 0.8
+                """
 
 if __name__ == '__main__':
     
@@ -193,7 +245,8 @@ if __name__ == '__main__':
     #contour_results_rescaled = detector.scale_contour_to_original_coordinates(contour_results,original_copy.shape,img.shape)
 
     localiser = Localiser()
-    localiser.localise_v2(img, contour_results)
+    location = localiser.localise_use_all(img, contour_results)
+    print("Zaal: " + location)
     
     #room_scores_ordered = localiser.localise(img, contour_results)
     #print(room_scores_ordered)
