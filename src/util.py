@@ -1,7 +1,7 @@
 import cv2
 import random as rng
 import numpy as np
-
+from graph import Graph
 def resize_with_aspectratio(image, width=None, height=None, inter=cv2.INTER_AREA):
     dim = None
     (h, w) = image.shape[:2]
@@ -72,3 +72,47 @@ def rectify_contour(src_points,img,display = False):
         cv2.waitKey(0)
     
     return affine_image,crop_img
+
+def generate_graph():
+    vertices = "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 A B C D E F G H I J K L M N O P Q R S X II XXX".split()
+    g = Graph(vertices)
+    g.addEdges([('1', '2'), ('1','II')])
+    g.addEdges([('2', '3'), ('2', '4'), ('2', '5')])
+    g.addEdges([('4', '5'), ('4', '7')])
+    g.addEdges([('5', '7'), ('5', 'II')])
+    g.addEdges([('6', '7'), ('6', 'II'), ('6', '9')])
+    g.addEdges([('7', '8'), ('7', '9')])
+    g.addEdges([('8', '13')])
+    g.addEdges([('9', '10'), ('9', 'XXX')])
+    g.addEdges([('10', '11')])
+    g.addEdges([('11', '12')])
+    g.addEdges([('12', '19'), ('12', 'L'), ('12', 'S'), ('12', 'XXX')])
+    g.addEdges([('13', '14'), ('13', '16')])
+    g.addEdges([('14', '15'), ('14', '16')])
+    g.addEdges([('15', '16')])
+    g.addEdges([('16', '17'), ('16', '18'), ('16', '19')])
+    g.addEdges([('17', '18'), ('17', '19')])
+    g.addEdges([('18', '19')])
+    g.addEdges([('19', 'S'), ('19', 'L'), ('19', 'XXX')])
+    g.addEdges([('A', 'B'), ('A', 'II')])
+    g.addEdges([('B', 'C'), ('B', 'D'), ('B', 'E')])
+    g.addEdges([('C', 'D')])
+    g.addEdges([('D', 'E'), ('D', 'G'), ('D', 'H')])
+    g.addEdges([('E', 'G'), ('E', 'II')])
+    g.addEdges([('F', 'G'), ('F', 'I'), ('F', 'II')])
+    g.addEdges([('G', 'H'), ('G', 'I')])
+    g.addEdges([('H', 'M')])
+    g.addEdges([('I', 'J'), ('I', 'M'), ('I', 'XXX')])
+    g.addEdges([('J', 'K')])
+    g.addEdges([('K', 'L')])
+    g.addEdges([('L', 'S'), ('L', 'XXX')])
+    g.addEdges([('M', 'P'), ('M', 'Q')])
+    g.addEdges([('N', 'O'), ('N', 'P')])
+    g.addEdges([('O', 'P')])
+    g.addEdges([('P', 'Q'), ('P', 'R'), ('P', 'S')])
+    g.addEdges([('Q', 'R'), ('Q', 'S')])
+    g.addEdges([('R', 'S')])
+    g.addEdges([('S', 'XXX')])
+    g.addEdges([('X', 'II')])
+    g.addEdges([('II', 'XXX')])
+    return g

@@ -139,5 +139,29 @@ function matcher {
     python3 src/matcher.py "${path_test_image}" ${directory_database} ${csv_path}
 }
 
+# Localisation ./Taskfile localise  or  test
+
+function localise {
+    image="../data/Computervisie 2020 Project Database/dataset_pictures_msk/Zaal_B/20190323_112346.jpg"
+    python3 src/localiser.py "${image}"
+}
+
+function test {
+    directory_database='data/Database'
+    csv_path='src/data/keypoints.csv'
+
+    # Runs the main.py file with a selected video
+    if [ $# -eq 0 ]; then
+        #vid_path='data/videos/smartphone/MSK_03.mp4'
+        vid_path='data/videos/smartphone/MSK_03.mp4'
+
+
+        echo "No arguments supplied, playing default video @ ${vid_path}"
+        python3 src/test.py ${vid_path} ${directory_database} ${csv_path}
+    else
+        python3 src/test.py "$1" ${directory_database} ${csv_path}
+    fi
+}
+
 "$@"
 ```

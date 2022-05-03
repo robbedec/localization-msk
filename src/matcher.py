@@ -11,8 +11,6 @@ import torchvision.transforms as transforms
 from PIL import Image
 from torch.autograd import Variable as V
 
-# Is dit nog nodig @Lennert?
-NoneType = type(None)
 
 class CustomResNet():
     def __init__(self):
@@ -66,7 +64,6 @@ class PaintingMatcher():
 
         for file in os.listdir(directory_images):
             filename = os.fsdecode(file)
-            print(filename)
 
             img_path = os.path.join(os.fsdecode(directory_images), filename)
             img = cv2.imread(img_path)
@@ -142,18 +139,20 @@ class PaintingMatcher():
         self.df['keypoints'] = self.df['keypoints'].apply(lambda x: PaintingMatcher.convert_keypoints(x))
 
     def match(self,img_t, display=False):
-        #kp_t = self.orb.detect(img_t, None)
         kp_t, des_t = self.orb.detectAndCompute(img_t,  None)
 
         lowest_distance = 10000000000.0
         index = 0
 
 
-        distances = []
-        if type(des_t) == NoneType:
+        if not type(des_t) == np.ndarray:
             return []
+
+        distances = []
         for i, desc in enumerate(self.df['descriptors']):
+
             matches = self.bf.match(desc, des_t)
+
             matches = sorted(matches, key = lambda x:x.distance)
 
             sum = 0
@@ -171,13 +170,11 @@ class PaintingMatcher():
         distances = sorted(distances,key=lambda t:t[1])
 
         img_path = os.path.join(self.directory, self.df.id[index])
-        print(img_path)
         img = cv2.imread(img_path, flags = cv2.IMREAD_COLOR)
         # matches = self.bf.match(self.df[self.df.id == name].descriptors[0], des_t)
         matches = self.bf.match(self.df.descriptors[index], des_t)
 
         matches = sorted(matches, key = lambda x:x.distance)
-        print(len(matches))
         result = cv2.drawMatches(img, self.df.keypoints[index], img_t, kp_t, matches[:20], None)
 
         if(display):
