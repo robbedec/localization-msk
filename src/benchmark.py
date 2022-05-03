@@ -22,7 +22,7 @@ parser = argparse.ArgumentParser(description="My Script")
 parser.add_argument('--csv', help='Path to master CSV', required=True, type=str)
 parser.add_argument('--basefolder', help='Path to the base folder that contains the images', required=True, type=str)
 parser.add_argument('--out', help='Path to store the output csv', required=True, type=str)
-parser.add_argument('--display', help='Display intermediate images', required=False, default='n', type=str)
+parser.add_argument('--display', help='Display intermediate images', required=False, default='y', type=str)
 
 # Calculate the intersection over union ratio for two bouning boxes
 def calculate_iou(box_1, box_2):
@@ -55,6 +55,7 @@ df_paintings['image_path'] = df_paintings.apply(lambda row: os.path.join(IMAGES_
 
 for impath, df_group in df_paintings.groupby('image_path'):
     current_false_positives = 0
+    print(impath)
 
     # Feed image to the detector and calculate painting locations.
     img = cv2.imread(impath)
