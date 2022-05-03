@@ -117,9 +117,9 @@ class FrameProcessor():
         per, blur_ext = blur_detect(img_small, 35)
 
         if print_metric:
-            print(per, per < 0.001)
+            print(per, per < 0.004)
 
-        return per < 0.001
+        return per < 0.004
 
 def blur_detect(img, threshold):
     # Convert image to grayscale
@@ -130,6 +130,15 @@ def blur_detect(img, threshold):
     # Crop input image to be 3 divisible by 2
     Y = Y[0:int(M/16)*16, 0:int(N/16)*16]
     
+    # Als ik het goed begrijp komt LL1 overeen met een niveau van een Gaussische piramide want dit is het gemiddelde
+    # van een kleine regio van de afbeelding.
+    # De gerichte details komen overeen met de laplaciaan in die richting.
+    # Snel want in principe geen vermenigvuldigingen nodig tenzij in matrix vorm.
+    # Elk niveau dat je zakt is er minder details in de haar coefficienten dus enkel sterke edges blijven zichtbaar.
+    # Visuele hulp: https://unix4lyfe.org/haar/
+    # Afbeeldings decompositie
+    
+    # .dwt2 returns an approximation and a 3tuple containing horizontal details, vertical details and diagonal details.
     # Step 1, compute Haar wavelet of input image
     LL1,(LH1,HL1,HH1)= pywt.dwt2(Y, 'haar')
     # Another application of 2D haar to LL1
@@ -162,7 +171,6 @@ def blur_detect(img, threshold):
     Emax1 = np.zeros((N_iter))
     Emax2 = np.zeros((N_iter))
     Emax3 = np.zeros((N_iter))
-    
     
     count = 0
     
@@ -203,7 +211,6 @@ def blur_detect(img, threshold):
         
         # windows moves along horizontal dimension
         else:
-                
             y1 = y1 + sizeN1
             y2 = y2 + sizeN2
             y3 = y3 + sizeN3
@@ -227,11 +234,8 @@ def blur_detect(img, threshold):
     RGstructure = np.zeros((n_edges))
 
     for i in range(n_edges):
-    
         if EdgePoint[i] == 1:
-        
             if Emax1[i] < Emax2[i] and Emax2[i] < Emax3[i]:
-            
                 RGstructure[i] = 1
                 
     # Rule 4 Roof-Structure
@@ -239,11 +243,8 @@ def blur_detect(img, threshold):
     RSstructure = np.zeros((n_edges))
 
     for i in range(n_edges):
-    
         if EdgePoint[i] == 1:
-        
             if Emax2[i] > Emax1[i] and Emax2[i] > Emax3[i]:
-            
                 RSstructure[i] = 1
 
     # Rule 5 Edge more likely to be in a blurred image 
@@ -251,11 +252,8 @@ def blur_detect(img, threshold):
     BlurC = np.zeros((n_edges));
 
     for i in range(n_edges):
-    
         if RGstructure[i] == 1 or RSstructure[i] == 1:
-        
             if Emax1[i] < threshold:
-            
                 BlurC[i] = 1                        
         
     # Step 6
@@ -263,7 +261,6 @@ def blur_detect(img, threshold):
     
     # Step 7
     if (np.sum(RGstructure) + np.sum(RSstructure)) == 0:
-        
         blur_extent = 100
     else:
         blur_extent = np.sum(BlurC) / (np.sum(RGstructure) + np.sum(RSstructure))

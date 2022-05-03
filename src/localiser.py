@@ -40,7 +40,7 @@ class Localiser():
         dist_list = []
         for contour in contours_list:
             affine_image,crop_img = rectify_contour(contour, image, display=display)
-            soft_matches = self.matcher.match(crop_img,display=display)
+            soft_matches = self.matcher.match(crop_img,display=True)
             if len(soft_matches) == 0:
                 continue
             contour_room_dist = self.getMatchingDistances(soft_matches, max=len(self.connectivity_matrix))

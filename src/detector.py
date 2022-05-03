@@ -94,8 +94,8 @@ class PaintingDetector():
         contours = sorted(contours, key=cv2.contourArea, reverse=True)[:25]
 
         # This may be handy later on
-        #blob_contours = np.zeros((canny_output.shape[0], canny_output.shape[1], 1), dtype=np.uint8)
-        #cv2.fillPoly(blob_contours, pts=contours, color=(255,255,255))
+        # blob_contours = np.zeros((canny_output.shape[0], canny_output.shape[1], 1), dtype=np.uint8)
+        # cv2.fillPoly(blob_contours, pts=contours, color=(255,255,255))
 
         if display:
             drawing = np.zeros((canny_output.shape[0], canny_output.shape[1], 3), dtype=np.uint8)
