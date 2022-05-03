@@ -114,12 +114,16 @@ class FrameProcessor():
 
         # https://github.com/pedrofrodenas/blur-Detection-Haar-Wavelet
         # https://www.cs.cmu.edu/~htong/pdf/ICME04_tong.pdf
-        per, blur_ext = blur_detect(img_small, 35)
+        try:
+            per, blur_ext = blur_detect(img_small, 35)
 
-        if print_metric:
-            print(per, per < 0.004)
+            if print_metric:
+                print(per, per < 0.004)
 
-        return per < 0.004
+            return per < 0.004
+        except:
+            # Catch division by zero => no details in image
+            return True
 
 def blur_detect(img, threshold):
     # Convert image to grayscale

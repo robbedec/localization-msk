@@ -1,8 +1,8 @@
-#from cv2 import find4QuadCornerSubpix
 import numpy as np
 import cv2
 import sys
 import math
+import os
 
 from torch import matmul
 from matcher import PaintingMatcher
@@ -10,6 +10,8 @@ from detector import PaintingDetector
 from graph import Graph
 from scipy import linalg
 from hmm import HMM
+
+from preprocessing import FrameProcessor
 from util import (
     generate_graph,
     resize_with_aspectratio,
@@ -18,7 +20,6 @@ from util import (
     rectify_contour
 )
 
-import os
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 class Localiser():
@@ -40,6 +41,12 @@ class Localiser():
         dist_list = []
         for contour in contours_list:
             affine_image,crop_img = rectify_contour(contour, image, display=display)
+            
+            # Don't try to match contour if it's blurry.
+            # Results are most likely wrong anyway.
+            if FrameProcessor.sharpness_metric(crop_img):
+                continue
+
             soft_matches = self.matcher.match(crop_img,display=True)
             if len(soft_matches) == 0:
                 continue
