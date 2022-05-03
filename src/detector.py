@@ -1,4 +1,3 @@
-from cv2 import find4QuadCornerSubpix
 import numpy as np
 import cv2
 import sys
@@ -23,9 +22,6 @@ class PaintingDetector():
         if not type(img) == np.ndarray:
             raise ValueError()
 
-        # TODO: Rescale image according to its original dimensions.
-        # TODO: Calculate blur metric and ignore frame if the score is low.
-        # TODO: Dont use a fixed rescale value.
         imh, imw, _ = img.shape
         self._img = resize_with_aspectratio(img, width=500)
         self._original_shape = img.shape
@@ -57,12 +53,21 @@ class PaintingDetector():
         dilated_edgemap = cv2.dilate(src=edgemap, kernel=dilate_kernel, iterations=1)
         dilated_edgemap = cv2.dilate(src=dilated_edgemap, kernel=dilate_kernel.T, iterations=1)
 
+        """
+        dilated = cv2.dilate(edgemap, (7,7), iterations=3)
+        cv2.imshow('Dilated', dilated)
+
+        eroded = cv2.erode(dilated, (3, 3), iterations=1)
+        cv2.imshow('Eroded', eroded)
+        """
+
         if display:
             cv2.imshow('Edgemap', edgemap)
             cv2.imshow('Edgemap Dilated', dilated_edgemap)
             cv2.waitKey(0)
-        
+
         return dilated_edgemap
+        #return eroded
         #return edgemap
     
     """
@@ -113,7 +118,6 @@ class PaintingDetector():
 
             # Save the contour if it can be described using a rectangle. The final list contains a list of
             # candidate painting frames.
-            # TODO: Ask lecturers on how to find a good general value for this.
             if len(approx) == 4 and solidity > 0.6:
                 ordered = order_points(approx.reshape((4,2)))
                 contour_results.append(ordered)
@@ -164,15 +168,16 @@ if __name__ == '__main__':
     img = cv2.imread(impath)
     
     detector = PaintingDetector(img)
-    contour_results, original_copy = detector.contours(display=False)
+    contour_results, original_copy = detector.contours(display=True)
 
     # TODO: dit best allemaal verplaatsen naar een sample file
     # want het wordt snel onoverzichtelijk.
     # Misschien zelfs naar main.py omdat dit werkelijke functionaliteit is.
 
     #directory_database = '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Database_paintings/Database'
-    #csv_path='/home/robbedec/repos/ugent/computervisie/computervisie-group8/src/data/robbetest.csv'
+    #csv_path='/home/robbedec/repos/ugent/computervisie/computervisie-group8/src/data/keypoints.csv'
     #matcher = PaintingMatcher(csv_path, directory_database)
+    """
     matcher  = PaintingMatcher("/Users/lennertsteyaert/Documents/GitHub/computervisie-group8/src/data/keypoints.csv","/Users/lennertsteyaert/Documents/GitHub/computervisie-group8/data/Database")
 
     
@@ -189,3 +194,4 @@ if __name__ == '__main__':
         painting_number = matcher.get_painting_number(best_match[0])
         
         print(f"Room: {room} photo: {photo} number: {painting_number}")
+    """
