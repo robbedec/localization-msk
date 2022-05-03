@@ -24,7 +24,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 class Localiser():
 
-    def __init__(self, matcher=PaintingMatcher("src/data/keypoints.csv","../data/Database"), graph=None) -> None:
+    def __init__(self, matcher=PaintingMatcher("src/data/keypoints.csv","../data/Database"), graph=None, hmm_distribution='linear') -> None:
         self.matcher = matcher
         self.previous = "..."
         if graph == None:
@@ -32,9 +32,9 @@ class Localiser():
         self.graph = graph
         self.connectivity_matrix = self.graph.getConnectivityMatrix()
         self.room_prob = np.ones(len(self.connectivity_matrix))
-        self.hmm = HMM.build(self.connectivity_matrix)
+        self.hmm = HMM.build(self.connectivity_matrix, hmm_distribution)
     
-    def localise_use_all(self, image, contours_list=[], display=False):
+    def localise(self, image, contours_list=[], display=False, max_room_matches=0):
         if len(contours_list) == 0:
             return self.previous
 
@@ -50,7 +50,7 @@ class Localiser():
             soft_matches = self.matcher.match(crop_img,display=True)
             if len(soft_matches) == 0:
                 continue
-            contour_room_dist = self.getMatchingDistances(soft_matches, max=len(self.connectivity_matrix))
+            contour_room_dist = self.getMatchingDistances(soft_matches, max=max_room_matches)
             dist_list.append(contour_room_dist)
 
         # Return previous result if there are no matches
@@ -81,7 +81,8 @@ class Localiser():
             
 
     def getMatchingDistances(self, soft_matches, max=3):
-        
+        if max == 0:
+            max = len(self.connectivity_matrix)
         room_dist_list = np.zeros(len(self.connectivity_matrix), np.float32)
         room_count = 0
         idx = 0
@@ -251,8 +252,8 @@ if __name__ == '__main__':
     contour_results, original_copy = detector.contours(display=False)
     #contour_results_rescaled = detector.scale_contour_to_original_coordinates(contour_results,original_copy.shape,img.shape)
 
-    localiser = Localiser()
-    location = localiser.localise_use_all(img, contour_results)
+    localiser = Localiser(hmm_distribution='gaussian')
+    location = localiser.localise(img, contour_results)
     print("Zaal: " + location)
     
     #room_scores_ordered = localiser.localise(img, contour_results)

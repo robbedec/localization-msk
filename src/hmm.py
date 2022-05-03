@@ -1,10 +1,8 @@
-#from hmmlearn.hmm import GaussianHMM
-import enum
-from graph import Graph
+from random import gauss
 from util import generate_graph
-from scipy.stats import norm
 import numpy as np
-import cv2 as cv
+import cv2
+import math
 
 
 class HMM():
@@ -15,10 +13,13 @@ class HMM():
         self.prev_X = None
     
     @staticmethod
-    def build(connectivityMatrix):
+    def build(connectivityMatrix, distribution='linear', mu=0, sigma=2, max_dist=11):
         dm = createDistanceMatrix(connectivityMatrix)
-        wm = createWeightedMatrix(dm)
-        return HMM(wm)
+        if distribution == 'linear':
+            matrix = createLinearDistributionMatrix(dm)
+        elif distribution == 'gaussian':
+            matrix = createGaussianDistributionMatrix(dm, mu, sigma, max_dist)
+        return HMM(matrix)
     
     def getOptimalPrediction(self, frame_room_prob):
         ## Return False if list isn't same size
@@ -52,7 +53,7 @@ class HMM():
         return stat_distr
 
     def __calculateOdds(self, current_odds, P_X, P_YX):
-        return current_odds * P_X * P_YX
+        return 1 * P_X * P_YX
     
         """
         print(obs_var_matrix)
@@ -85,13 +86,34 @@ def createDistanceMatrix(connectivityMatrix):
                     dm[i][j] = dm[i][k] + dm[k][j]
     return dm
 
-def createWeightedMatrix(distanceMatrix):
+def createLinearDistributionMatrix(distanceMatrix):
     wm = [row.copy() for row in distanceMatrix]
     for row in wm:
         dist_max = max(row)
         sum = 0
         for i, dist in enumerate(row):
             new_val = dist_max - dist + 1
+            row[i] = new_val
+            sum += new_val
+        row /= sum
+    return wm
+
+def getGaussianDistribution(mu, sigma, max):
+    distr = []
+    for i in range(0, max):
+        z = (i - mu)/sigma
+        distr.append(math.exp(z*z*-1/2)/math.sqrt(2*math.pi))
+    return distr
+
+
+def createGaussianDistributionMatrix(distanceMatrix, mu=0, sigma=1, max_dist=15):
+    gauss_distr = getGaussianDistribution(mu, sigma, max_dist)
+    wm = [row.copy() for row in distanceMatrix]
+    for row in wm:
+        dist_max = max(row)
+        sum = 0
+        for i, dist in enumerate(row):
+            new_val = (dist_max - dist + 1) * gauss_distr[int(dist)]
             row[i] = new_val
             sum += new_val
         row /= sum
@@ -105,9 +127,10 @@ if __name__ == '__main__':
     g = generate_graph()
     cm = g.getConnectivityMatrix()
     dm = createDistanceMatrix(cm)
-    wm = createWeightedMatrix(dm)
+    wm = createLinearDistributionMatrix(dm)
+    gm = createGaussianDistributionMatrix(dm)
 
-
+    """
     print("Connectivity Matrix:")
     printMatrix(cm)
     print("\n\nDistance Matrix:")
@@ -115,6 +138,10 @@ if __name__ == '__main__':
     print("\n\nWeightedMatrix (= hidden layers): ")
     printMatrix(wm)
     print(sum(wm[0]))
+    """
+    printMatrix(wm)
+    print("\n\n\n")
+    printMatrix(gm)
 
 #gaussian_kernel = cv.getGaussianKernel(length)
 
