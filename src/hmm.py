@@ -1,7 +1,5 @@
-from random import gauss
 from util import generate_graph
 import numpy as np
-import cv2
 import math
 
 
@@ -9,8 +7,8 @@ class HMM():
     def __init__(self, hidden_layers) -> None:
         self.hidden_layers = hidden_layers
         self.stat_distr = self.__calculateStationaryDistribution()
-        self.currentOdds = 1
         self.prev_X = None
+        self.prob_arr = self.stat_distr.copy()
     
     @staticmethod
     def build(connectivityMatrix, distribution='linear', mu=0, sigma=2, max_dist=11):
@@ -21,26 +19,15 @@ class HMM():
             matrix = createGaussianDistributionMatrix(dm, mu, sigma, max_dist)
         return HMM(matrix)
     
-    def getOptimalPrediction(self, frame_room_prob):
+    def getOptimalPrediction(self, frame_room_prob, viterbi="False"):
         ## Return False if list isn't same size
         if len(frame_room_prob) != len(self.hidden_layers):
             return False
-
         
-        best_pred = (0, None)
-        prev_X_list = []
-        ## Use stationary distribution on first run
-        if self.prev_X == None:
-            prev_X_list = self.stat_distr
+        if viterbi:        
+            best_pred = self.__viterbi(frame_room_prob)
         else:
-            prev_X_list = self.hidden_layers[self.prev_X]
-
-        ## Calculate the optimal prediction
-        for i, room_prob in enumerate(frame_room_prob):
-            pred = self.__calculateOdds(self.currentOdds, prev_X_list[i], room_prob)
-            if pred > best_pred[0]:
-                best_pred = (pred, i)
-        self.prev_X = best_pred[1]
+            best_pred = self.__predictWithoutSequence(frame_room_prob)
         return best_pred
     
     def __calculateStationaryDistribution(self):
@@ -52,25 +39,40 @@ class HMM():
         stat_distr = target_eigenvect / sum(target_eigenvect)
         return stat_distr
 
-    def __calculateOdds(self, current_odds, P_X, P_YX):
-        return 1 * P_X * P_YX
-    
-        """
-        print(obs_var_matrix)
-        for row in obs_var_matrix:
-            contour_idx = []
-            for i, val in enumerate(row):
-                if val != 0:
-                    contour_idx.append(i)
-            idx_list.append(contour_idx)
-        stat_distr = getStationaryDistribution(hidden_states)
-        print(idx_list)
-        idx_combinations = [list(itertools.combinations_with_replacement(row, r=len(row))) for row in idx_list]
-        idx_cart_product = [list(itertools.product(row, repeat=len(row))) for row in idx_list]
+    def __predictWithoutSequence(self, frame_room_prob):
+        best_pred = (0, None)
+        prev_X_list = []
+        ## Use stationary distribution on first run
+        if self.prev_X == None:
+            prev_X_list = self.stat_distr
+        else:
+            prev_X_list = self.hidden_layers[self.prev_X]
 
-        print(idx_combinations)
-        print(idx_cart_product)
-        """
+        ## Calculate the optimal prediction
+        for i, room_prob in enumerate(frame_room_prob):
+            pred = prev_X_list[i] * room_prob
+            if pred > best_pred[0]:
+                best_pred = (pred, i)
+        self.prev_X = best_pred[1]
+        return best_pred
+    
+    ## viterbi algorithm (kinda)
+    def __viterbi(self, room_prob):
+        global_max = (0, None)
+        for i, prev_prob in enumerate(self.prob_arr):
+            local_max = (0, None)
+            for j, p in enumerate(room_prob):
+                next_p = prev_prob * self.hidden_layers[i][j] * p
+                if next_p > local_max[0]:
+                    local_max = (next_p, j)
+            self.prob_arr[i] = local_max[0]
+            if local_max[0] > global_max[0]:
+                global_max = local_max
+        return global_max               
+
+
+### -- End class -- ##
+
 def createDistanceMatrix(connectivityMatrix):
     length = len(connectivityMatrix)
     dm = [row.copy() for row in connectivityMatrix]
