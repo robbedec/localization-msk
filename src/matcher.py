@@ -221,7 +221,7 @@ class PaintingMatcher():
                     matches = sorted(matches, key = lambda x:x.distance)
                     result = cv2.drawMatches(img, self.df.keypoints[distances[i][0]], img_t, kp_t, matches[:20], None)
 
-                    #cv2.imshow("Query", img_t)
+                    cv2.imshow("Query", img_t)
                     cv2.namedWindow("result" + str(i), flags=cv2.WINDOW_NORMAL)
                     cv2.imshow("result" + str(i), result)
 

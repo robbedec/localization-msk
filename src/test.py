@@ -20,7 +20,7 @@ def test(video_path,database,csv_path):
 
     detector = PaintingDetector()
     matcher = PaintingMatcher(csv_path,database)
-    localiser = Localiser(matcher=matcher)
+    localiser = Localiser(matcher=matcher, hmm_distribution='gaussian')
 
     while True:
         success, img = cap.read()
@@ -37,7 +37,7 @@ def test(video_path,database,csv_path):
             contour_results, img_with_contours = detector.contours(display=False)
             #contour_results_rescaled = detector.scale_contour_to_original_coordinates(contour_results,img_with_contours.shape,img.shape)
 
-            room_prediction = localiser.localise_use_all(img, contour_results, display=False)
+            room_prediction = localiser.localise(img, contour_results, display=False)
             txt = "Zaal: " + room_prediction
             cv2.putText(img=img_with_contours, text=txt, org=(50, 250), fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=2, color=(0, 255, 0), thickness=2)
             cv2.imshow("video", img_with_contours)
