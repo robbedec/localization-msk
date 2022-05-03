@@ -176,3 +176,4 @@ cython_debug/
 
 # Built Visual Studio Code Extensions
 *.vsix
+src/data/keypoints.csv

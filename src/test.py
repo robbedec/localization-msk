@@ -15,7 +15,7 @@ def test(video_path,database,csv_path):
     # print(video_path)
     
     cap = cv2.VideoCapture(video_path)
-    cap.set(cv2.CAP_PROP_POS_FRAMES, 2600)
+    cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
     fps = cap.get(cv2.CAP_PROP_FPS)
 
     detector = PaintingDetector()
@@ -30,7 +30,7 @@ def test(video_path,database,csv_path):
 
         is_blurred = FrameProcessor.sharpness_metric(img, print_metric=False)
         if is_blurred:
-            cv2.imshow("Image", resize_with_aspectratio(img, width=500))
+            cv2.imshow("video", resize_with_aspectratio(img, width=500))
         else:
         
             detector.img = img
