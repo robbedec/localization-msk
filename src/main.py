@@ -12,9 +12,10 @@ from preprocessing import FrameProcessor
 def create_map(room_pred, map_path, file_path):
     # TODO: remove after room_pred are normalized.
     # Random percentages
-    room_pred = np.random.uniform(low=0, high=1, size=(len(vertices),))
+    #room_pred = np.random.uniform(low=0, high=1, size=(len(vertices),))
 
     plan = cv2.imread(map_path)
+    [print(i, p) for i, p in enumerate(room_pred)]
 
     # Load contour data from storage
     df_poly = pd.DataFrame(data=np.load(file_path, allow_pickle=True), columns=['polygon'])
