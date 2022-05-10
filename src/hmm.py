@@ -10,9 +10,12 @@ class HMM():
         self.stat_distr = self.__calculateStationaryDistribution()
         self.prev_X = None
         self.prob_arr = self.stat_distr.copy()
+        self.prev_best = None
+        self.normalized_prob_arr = self.stat_distr.copy()
+        
     
     @staticmethod
-    def build(connectivityMatrix, distribution='gaussian', mu=0, sigma=2, max_dist=11):
+    def build(connectivityMatrix, distribution='gaussian', mu=0, sigma=1, max_dist=11):
         dm = createDistanceMatrix(connectivityMatrix)
         if distribution == 'linear':
             matrix = createLinearDistributionMatrix(dm)
@@ -56,30 +59,35 @@ class HMM():
                 best_pred = (pred, i)
         self.prev_X = best_pred[1]
         return best_pred
-    
-    ## viterbi algorithm (kinda)
+
     def __viterbi(self, room_prob):
         global_max = (0, None)
         total_sum = 0
-        for i, prev_prob in enumerate(self.prob_arr):
+        for i, p in enumerate(room_prob):
+            ## Hacky fix atm
+            if (i == self.prev_best) & (p == 0):
+                p = 0.02
             local_max = (0, None)
-            for j, p in enumerate(room_prob):
-                next_p = prev_prob * self.hidden_layers[i][j] * p
+            for j, prev_prob in enumerate(self.prob_arr):
+                next_p = prev_prob * self.hidden_layers[j][i] * p
                 if next_p > local_max[0]:
-                    local_max = (next_p, j)
+                    local_max = (next_p, i)
             self.prob_arr[i] = local_max[0]
             total_sum += local_max[0]
             if local_max[0] > global_max[0]:
                 global_max = local_max
         self.normalize_array(self.prob_arr, total_sum)
+        self.prev_best = global_max[1]
         return global_max
 
     def normalize_array(self, arr, sum_total):
         for i, prob in enumerate(arr):
-            arr[i] = prob/sum_total
+            self.prob_arr[i] = prob/sum_total
+        
 
 ### -- End class -- ##
 
+## Floyd Warshall
 def createDistanceMatrix(connectivityMatrix):
     length = len(connectivityMatrix)
     dm = [row.copy() for row in connectivityMatrix]
