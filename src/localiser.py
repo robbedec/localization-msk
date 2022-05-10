@@ -24,7 +24,6 @@ class Localiser():
             graph = generate_graph()
         self.graph = graph
         self.connectivity_matrix = self.graph.getConnectivityMatrix()
-        self.room_prob = np.ones(len(self.connectivity_matrix))
         self.hmm = HMM.build(self.connectivity_matrix, hmm_distribution)
     
     def localise(self, image, contours_list=[], display=False, max_room_matches=0):

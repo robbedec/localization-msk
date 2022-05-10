@@ -1,3 +1,4 @@
+from cv2 import normalize
 from util import generate_graph
 import numpy as np
 import math
@@ -11,7 +12,7 @@ class HMM():
         self.prob_arr = self.stat_distr.copy()
     
     @staticmethod
-    def build(connectivityMatrix, distribution='linear', mu=0, sigma=2, max_dist=11):
+    def build(connectivityMatrix, distribution='gaussian', mu=0, sigma=2, max_dist=11):
         dm = createDistanceMatrix(connectivityMatrix)
         if distribution == 'linear':
             matrix = createLinearDistributionMatrix(dm)
@@ -19,7 +20,7 @@ class HMM():
             matrix = createGaussianDistributionMatrix(dm, mu, sigma, max_dist)
         return HMM(matrix)
     
-    def getOptimalPrediction(self, frame_room_prob, viterbi="False"):
+    def getOptimalPrediction(self, frame_room_prob, viterbi=True):
         ## Return False if list isn't same size
         if len(frame_room_prob) != len(self.hidden_layers):
             return False
@@ -59,6 +60,7 @@ class HMM():
     ## viterbi algorithm (kinda)
     def __viterbi(self, room_prob):
         global_max = (0, None)
+        total_sum = 0
         for i, prev_prob in enumerate(self.prob_arr):
             local_max = (0, None)
             for j, p in enumerate(room_prob):
@@ -66,10 +68,15 @@ class HMM():
                 if next_p > local_max[0]:
                     local_max = (next_p, j)
             self.prob_arr[i] = local_max[0]
+            total_sum += local_max[0]
             if local_max[0] > global_max[0]:
                 global_max = local_max
-        return global_max               
+        self.normalize_array(self.prob_arr, total_sum)
+        return global_max
 
+    def normalize_array(self, arr, sum_total):
+        for i, prob in enumerate(arr):
+            arr[i] = prob/sum_total
 
 ### -- End class -- ##
 
@@ -132,7 +139,7 @@ if __name__ == '__main__':
     wm = createLinearDistributionMatrix(dm)
     gm = createGaussianDistributionMatrix(dm)
 
-    """
+    
     print("Connectivity Matrix:")
     printMatrix(cm)
     print("\n\nDistance Matrix:")
@@ -140,8 +147,8 @@ if __name__ == '__main__':
     print("\n\nWeightedMatrix (= hidden layers): ")
     printMatrix(wm)
     print(sum(wm[0]))
-    """
-    printMatrix(wm)
+    
+    
     print("\n\n\n")
     printMatrix(gm)
 
