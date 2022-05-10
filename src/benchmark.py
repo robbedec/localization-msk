@@ -15,7 +15,8 @@ Usage:
         --csv '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Database_log.csv' \
         --basefolder '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Computervisie 2020 Project Database/dataset_pictures_msk' \
         --out '/home/robbedec/repos/ugent/computervisie/computervisie-group8/src/data/detectionproblems.csv' \
-        --display 'y'
+        --display 'y' \
+        --what 'all'
 """
 
 parser = argparse.ArgumentParser(description="My Script")
@@ -216,6 +217,7 @@ def benchmark_matcher():
     print('BENCHMARKING PAINTING MATCHER')
     print('---------------------------------------------')
 
+# SETUP:
 if what == 'all':
     benchmark_detector()
     benchmark_matcher()
