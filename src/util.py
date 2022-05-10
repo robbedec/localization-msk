@@ -1,7 +1,12 @@
 import cv2
 import random as rng
 import numpy as np
+import pandas as pd
+
 from graph import Graph
+
+vertices = "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 A B C D E F G H I J K L M N O P Q R S II V".split()
+
 def resize_with_aspectratio(image, width=None, height=None, inter=cv2.INTER_AREA):
     dim = None
     (h, w) = image.shape[:2]
@@ -43,8 +48,6 @@ def order_points(pts):
     rect[3] = pts[np.argmax(diff)]
     # return the ordered coordinates
     return rect
-
-
 
 def rectify_contour(src_points,img,display = False):
     (old_h,  old_w, _) = img.shape  
@@ -116,3 +119,45 @@ def generate_graph():
     g.addEdges([('X', 'II')])
     g.addEdges([('II', 'XXX')])
     return g
+
+def generate_map_contours():
+    """
+    Creates a binary file that contains the dataframe with the points of the contours for eacht room.
+    Points are manually selected. 
+    """
+
+    def onMouse(event, x, y, flag, param):
+        if event == cv2.EVENT_LBUTTONDOWN:
+            print('clicked')
+            param.append([x, y])
+
+    FILE_PATH = '/home/robbedec/repos/ugent/computervisie/computervisie-group8/src/data/polygons.npy'
+    plan = cv2.imread('/media/robbedec/BACKUP/ugent/master/computervisie/project/data/groundplan_msk.PNG')
+
+    vertices = "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 A B C D E F G H I J K L M N O P Q R S II V".split()
+
+    points = []
+    polygons = pd.DataFrame()
+
+    cv2.namedWindow('original_clickable')
+    cv2.setMouseCallback('original_clickable', onMouse, points)
+
+    cv2.imshow('original_clickable', plan)
+    key = 5
+
+    for i in range(len(vertices)):
+        print('room index: {} ({})'.format(i, vertices[i]))
+        points.clear()
+
+        # Press ESC to continue
+        while key != 27:
+            key = cv2.waitKey()
+        
+        print('going to next room')
+        # Reset key
+        key = 0
+        polygons = polygons.append({
+            'polygon': np.array(points),
+        }, ignore_index=True)
+
+    np.save(FILE_PATH, polygons)

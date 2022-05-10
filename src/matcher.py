@@ -213,7 +213,7 @@ class PaintingMatcher():
         result = cv2.drawMatches(img, self.df.keypoints[index], img_t, kp_t, matches[:20], None)
 
         if(display):
-            for i in range(3):
+            for i in range(1):
                 if(len(distances) > i):
                     img_path = os.path.join(self.directory, self.df.id[distances[i][0]])
                     img = resize_with_aspectratio(cv2.imread(img_path, flags = cv2.IMREAD_COLOR), width=800)
@@ -221,7 +221,7 @@ class PaintingMatcher():
                     matches = sorted(matches, key = lambda x:x.distance)
                     result = cv2.drawMatches(img, self.df.keypoints[distances[i][0]], img_t, kp_t, matches[:20], None)
 
-                    cv2.imshow("Query", img_t)
+                    #cv2.imshow("Query", img_t)
                     cv2.namedWindow("result" + str(i), flags=cv2.WINDOW_NORMAL)
                     cv2.imshow("result" + str(i), result)
 

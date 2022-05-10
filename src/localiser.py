@@ -40,7 +40,7 @@ class Localiser():
             if FrameProcessor.sharpness_metric(crop_img):
                 continue
 
-            soft_matches = self.matcher.match(crop_img,display=display)
+            soft_matches = self.matcher.match(crop_img,display=True)
             if len(soft_matches) == 0:
                 continue
             contour_room_dist = self.getMatchingDistances(soft_matches, max=max_room_matches)
@@ -53,7 +53,10 @@ class Localiser():
         # Calculate the chance that the frame is located in a room (for every room)
         room_odds = self.calculateRoomOdds(dist_list)
 
-        room_pred = self.hmm.getOptimalPrediction(room_odds)
+        room_pred = self.hmm.getOptimalPrediction(room_odds, viterbi=True)
+        if room_pred is None or room_pred[1] is None:
+            # Geen idee waarom dit gebeurt.
+            return self.previous
         self.previous = self.graph.getVertices()[room_pred[1]]
         return self.previous
     
@@ -93,6 +96,10 @@ class Localiser():
                 room_count +=1
             idx+=1
         return room_dist_list
+
+    @property
+    def prob_array(self):
+        return self.hmm.prob_arr
 
 if __name__ == '__main__':
     
