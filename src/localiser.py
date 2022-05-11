@@ -2,11 +2,10 @@ import numpy as np
 import cv2
 import sys
 import os
-from torch import matmul
+
 from matcher import PaintingMatcher
 from detector import PaintingDetector
 from hmm import HMM
-
 from preprocessing import FrameProcessor
 from util import (
     generate_graph,

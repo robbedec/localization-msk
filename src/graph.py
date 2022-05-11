@@ -1,12 +1,12 @@
 import numpy as np
 
 class Graph():
-
     """
     example data
         vertices = {'a', 'b', 'c', ...}
         edges = {'a' = {'b', 'c'}, ...}
     """
+
     def __init__(self, vertices = [], edges=[]):
         self.vertices = []
         self.edges = {}
@@ -39,5 +39,3 @@ class Graph():
                 row[vertices.index(e)]=1
             matrix.append(row)
         return matrix
-    
-    

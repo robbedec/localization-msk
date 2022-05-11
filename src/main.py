@@ -15,7 +15,6 @@ def create_map(room_pred, map_path, file_path):
     #room_pred = np.random.uniform(low=0, high=1, size=(len(vertices),))
 
     plan = cv2.imread(map_path)
-    [print(i, p) for i, p in enumerate(room_pred)]
 
     # Load contour data from storage
     df_poly = pd.DataFrame(data=np.load(file_path, allow_pickle=True), columns=['polygon'])
@@ -100,7 +99,6 @@ def main():
             create_map(localiser.prob_array, map_path, map_contour_file)
 
         k = cv2.waitKey(int(1000 / fps / 1.5))
-
         if k != -1:
             cv2.destroyAllWindows()
             break

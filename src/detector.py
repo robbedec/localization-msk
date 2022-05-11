@@ -1,7 +1,6 @@
 import numpy as np
 import cv2
 import sys
-import math
 from matcher import PaintingMatcher
 
 from util import (
@@ -149,7 +148,8 @@ class PaintingDetector():
         return self.scale_contour_to_original_coordinates(contour_results,original_copy.shape,self._original_shape), original_copy
 
     """
-    Apply scaling correction to the results. The result is a 3D tensor where the first index is a counter, the other two correspond to the 4x2 representation of 4 2D points.
+    Apply scaling correction to the results. The result is a 3D tensor where the first index is a counter,
+    the other two correspond to the 4x2 representation of 4 2D points.
     Coordinates are scaled to the size of the original image.  
     """
     def scale_contour_to_original_coordinates(self, contour_results, new_shape, original_shape):

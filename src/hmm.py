@@ -3,7 +3,6 @@ from util import generate_graph
 import numpy as np
 import math
 
-
 class HMM():
     def __init__(self, hidden_layers) -> None:
         self.hidden_layers = hidden_layers
@@ -12,7 +11,6 @@ class HMM():
         self.prob_arr = self.stat_distr.copy()
         self.prev_best = None
         self.normalized_prob_arr = self.stat_distr.copy()
-        
     
     @staticmethod
     def build(connectivityMatrix, distribution='gaussian', mu=0, sigma=1, max_dist=11):
@@ -84,7 +82,6 @@ class HMM():
         for i, prob in enumerate(arr):
             self.prob_arr[i] = prob/sum_total
         
-
 ### -- End class -- ##
 
 ## Floyd Warshall

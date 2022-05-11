@@ -172,19 +172,9 @@ class PaintingMatcher():
         #for i, desc in enumerate(self.df.iloc[best_fvec_indices]['descriptors']):
         for i, desc in enumerate(self.df['descriptors']):
             matches = self.bf.match(desc, des_t)
-
-            # print("unsorted")
-            # print(matches)
-
             matches = sorted(matches, key = lambda x:x.distance)
 
             sum = 0
-
-            # print("all matches")
-            # print(matches)
-            # print("cutted")
-            # print( matches[:10])
-
             if(len(matches) >= 20):
                 out = []
                 for m in matches[:20]:
@@ -193,20 +183,15 @@ class PaintingMatcher():
                 for m in matches[:20]:
                     sum += m.distance
 
-                # print(sum)
-
                 distances.append((i,sum))
                 if sum < lowest_distance:
                     lowest_distance = sum
                     index= i
 
-        #print(index)
-
         distances = sorted(distances,key=lambda t: t[1])
 
         img_path = os.path.join(self.directory, self.df.id[index])
         img = cv2.imread(img_path, flags = cv2.IMREAD_COLOR)
-        # matches = self.bf.match(self.df[self.df.id == name].descriptors[0], des_t)
         matches = self.bf.match(self.df.descriptors[index], des_t)
 
         matches = sorted(matches, key = lambda x: x.distance)
@@ -222,8 +207,8 @@ class PaintingMatcher():
                     result = cv2.drawMatches(img, self.df.keypoints[distances[i][0]], img_t, kp_t, matches[:20], None)
 
                     #cv2.imshow("Query", img_t)
-                    cv2.namedWindow("result" + str(i), flags=cv2.WINDOW_NORMAL)
-                    cv2.imshow("result" + str(i), result)
+                    cv2.namedWindow("Result " + str(i + 1), flags=cv2.WINDOW_NORMAL)
+                    cv2.imshow("Result " + str(i + 1), result)
 
             cv2.waitKey(1)
 

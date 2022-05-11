@@ -66,7 +66,6 @@ def rectify_contour(src_points,img,display = False):
 
     crop_img = affine_image[min_y:max_y,min_x:max_x] # crop image
 
-
     # Draw contours
     if display:
         # Show the tranformed image
