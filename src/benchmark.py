@@ -10,7 +10,7 @@ from shapely.geometry import Polygon
 
 from detector import PaintingDetector
 from matcher import PaintingMatcher
-from util import printProgressBar
+from util import printProgressBar, rectify_contour
 
 """
 Usage:
@@ -238,49 +238,54 @@ def benchmark_matcher():
     print('----------------')
     print('100 FEATURES')
     print('----------------')
-    # features  = 100
-    # match_number_of_features(features, df, 'result_100_features', 'distance_100_features', 'time_100_features')
+    features  = 100
+    match_number_of_features(features, df, 'result_100_features', 'distance_100_features', 'time_100_features')
 
     print('----------------')
     print('200 FEATURES')
     print('----------------')
-    # features  = 200
-    # match_number_of_features(features, df,'result_200_features', 'distance_200_features', 'time_200_features')
+    features  = 200
+    match_number_of_features(features, df,'result_200_features', 'distance_200_features', 'time_200_features')
 
     print('----------------')
     print('300 FEATURES')
     print('----------------')
-    # features  = 300
-    # match_number_of_features(features, df, 'result_300_features', 'distance_300_features', 'time_300_features')
+    features  = 300
+    match_number_of_features(features, df, 'result_300_features', 'distance_300_features', 'time_300_features')
 
-
+    # print(df.head())
     df.to_csv(OUT_PATH)  
 
 def match_number_of_features(features, df, col_filename, col_distance, col_time):
-    #PaintingMatcher.generate_keypoints(IMAGES_PATH,CSV_PATH, features)
+    PaintingMatcher.generate_keypoints(IMAGES_PATH,CSV_PATH, features)
 
     matcher = PaintingMatcher(CSV_PATH,IMAGES_PATH,features)
-    directory_list = os.listdir(IMAGES_PATH)
+
+    directory_list = os.listdir("data/Computervisie 2020 Project Database/test_pictures_msk")
+
+    detector = PaintingDetector()
 
     progress = 0
     printProgressBar(progress, len(directory_list), prefix = 'Progress matching:', suffix = 'Complete', length = 50)
 
     for file in directory_list:
         filename = os.fsdecode(file)
-        img_path = os.path.join(os.fsdecode(IMAGES_PATH), filename)
+        #img_path = os.path.join(os.fsdecode(IMAGES_PATH), filename)
+
+        img_path = "data/Computervisie 2020 Project Database/test_pictures_msk/"  + filename
         img = cv2.imread(img_path)
 
 
-        tic = time.perf_counter()
-        distances = matcher.match(img)
-        toc = time.perf_counter()
+        detector.img = img
+        contour_results, img_with_contours = detector.contours(display=False)
 
-        filename_match = None
-        distance = 0
 
-        if len(distances) > 1:
-            filename_match = matcher.get_filename(distances[0][0])
-            distance = distances[0][1]
+        filename_match = []
+        distance = []
+        timing = []
+
+        #print(contour_results)
+
 
         if(not (filename in df['filename'].unique())):
             # df = pd.concat([df, pd.DataFrame.from_records([{ 'filename':filename }])])
@@ -288,15 +293,31 @@ def match_number_of_features(features, df, col_filename, col_distance, col_time)
             df.loc[progress] = [filename, None, None, None, None, None, None, None, None, None, None, None, None]
 
 
+        for contour in contour_results:
+            #print("rectify")
+            affine_image,crop_img = rectify_contour(contour, img, display=False)
+
+            tic = time.perf_counter()
+            distances = matcher.match(crop_img)
+            toc = time.perf_counter()
+
+
+            if len(distances) > 1:
+                filename_match.append(matcher.get_filename(distances[0][0]))
+                distance.append(distances[0][1])
+
+            timing.append(toc-tic)
+
         indexes = df.index[df['filename'] == filename].tolist()    
         df.at[indexes[0], col_filename] =  filename_match
         df.at[indexes[0], col_distance] =  distance
-        df.at[indexes[0], col_time] =  toc-tic
+        df.at[indexes[0], col_time] =  timing
 
    
         progress += 1
         printProgressBar(progress, len(directory_list), prefix = 'Progress matching:', suffix = 'Complete', length = 50)
- 
+        #break
+
     return df
 
 # SETUP:
