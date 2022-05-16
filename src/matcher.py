@@ -44,7 +44,7 @@ class CustomResNet():
         h = feature_layer.register_forward_hook(copy_hook)
 
         # Apply forward pass
-        fp = self.model.forward(processed_img)
+        fp = self.model.forward(processed_img) 
         
         h.remove()
         return feature_vector.numpy()[0, :, 0, 0]
@@ -190,12 +190,12 @@ class PaintingMatcher():
 
         distances = sorted(distances,key=lambda t: t[1])
 
-        img_path = os.path.join(self.directory, self.df.id[index])
-        img = cv2.imread(img_path, flags = cv2.IMREAD_COLOR)
-        matches = self.bf.match(self.df.descriptors[index], des_t)
+        # img_path = os.path.join(self.directory, self.df.id[index])
+        # img = cv2.imread(img_path, flags = cv2.IMREAD_COLOR)
+        # matches = self.bf.match(self.df.descriptors[index], des_t)
 
-        matches = sorted(matches, key = lambda x: x.distance)
-        result = cv2.drawMatches(img, self.df.keypoints[index], img_t, kp_t, matches[:20], None)
+        # matches = sorted(matches, key = lambda x: x.distance)
+        # result = cv2.drawMatches(img, self.df.keypoints[index], img_t, kp_t, matches[:20], None)
 
         if(display):
             for i in range(1):

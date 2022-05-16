@@ -84,46 +84,50 @@ function local() {
 ```
 
 
-# Sample usage using a Taskfile (Lennert macOS Moterey, relative paths)
+# Sample usage using a Taskfile (Lennert macOS Monterey, relative paths)
 
 ```bash
 #!/bin/bash
 
 # Usage: ./Taskfile <function_name>
 
-
-# Start: ./Taskfile start
-# Start: ./Taskfile start data/videos/smartphone/MSK_03.mp4
-
 function start {
     # Runs the main.py file with a selected video
+    calib_file='src/data/gopro-M.npy'
+    directory_database='data/Database'
+    csv_path='src/data/keypoints.csv'
+    map_path='data/groundplan_msk.png'
+    map_contour_file='src/data/polygons.npy'
+
     if [ $# -eq 0 ]; then
+        # Video taken with a smartphone camera
         vid_path='data/videos/smartphone/MSK_03.mp4'
+        # Gopro video
+        # vid_path='/media/robbedec/BACKUP/ugent/master/computervisie/project/data/videos/gopro/MSK_15.mp4'
 
         echo "No arguments supplied, playing default video @ ${vid_path}"
-        python3 src/main.py ${vid_path}
+        python3 src/main.py ${vid_path} ${calib_file} ${directory_database} ${csv_path} ${map_path} ${map_contour_file}
     else
-        python3 src/main.py "$1"
+        python3 src/main.py "$1" ${calib_file} ${directory_database} ${csv_path} ${map_path} ${map_contour_file}
     fi
 
 }
 
-
-# Detector: ./Taskfile detector
-
 function detector {
     # python3 src/detector.py  'data/Computervisie 2020 Project Database/test_pictures_msk/20190217_102133.jpg'
     # python3 src/detector.py  'data/Computervisie 2020 Project Database/test_pictures_msk/20190203_110338.jpg'
-    # python3 src/detector.py  'data/Computervisie 2020 Project Database/test_pictures_msk/20190217_110614.jpg'
+    #python3 src/detector.py  'data/Computervisie 2020 Project Database/test_pictures_msk/20190217_110614.jpg'
     # python3 src/detector.py  'data/Computervisie 2020 Project Database/test_pictures_msk/20190217_102014.jpg'
     # python3 src/detector.py  'data/Computervisie 2020 Project Database/test_pictures_msk/20190217_102511.jpg'
-    python3 src/detector.py  'data/Computervisie 2020 Project Database/dataset_pictures_msk/Zaal_A/20190323_111313.jpg'
+    #python3 src/detector.py  'data/Computervisie 2020 Project Database/dataset_pictures_msk/Zaal_A/20190323_111313.jpg'
     # python3 src/detector.py  'data/Computervisie 2020 Project Database/dataset_pictures_msk/zaal_1/IMG_20190323_111739.jpg'
+
+    python3 src/detector.py  'data/Computervisie 2020 Project Database/test_pictures_msk/20190217_102502.jpg'
+    #python3 src/detector.py  'data/Computervisie 2020 Project Database/test_pictures_msk/20190217_102133.jpg'
+
+
+    
 }
-
-
-# Benchmark: ./Taskfile benchmark
-# Benchmark without displaying results: ./Taskfile benchmark 0
 
 function benchmark {
     display='y'
@@ -137,8 +141,6 @@ function benchmark {
         --out 'src/csv/detectionproblems.csv' \
         --display ${display}
 }
-
-# Generate keypoints: ./Taskfile generatekeypoints
 
 function generatekeypoints {
 
@@ -157,7 +159,12 @@ function matcher {
     python3 src/matcher.py "${path_test_image}" ${directory_database} ${csv_path}
 }
 
-# Localisation ./Taskfile localise  or  test
+# function localise {
+#     #image="../data/Computervisie 2020 Project Database/dataset_pictures_msk/zaal_19/IMG_20190323_121333.jpg"
+#     image="../data/Computervisie 2020 Project Database/dataset_pictures_msk/Zaal_B/20190323_112346.jpg"
+#     "C:\Users\bramd\anaconda3\envs\comp_vision\python" src/localiser.py "${image}"
+# }
+
 
 function localise {
     image="../data/Computervisie 2020 Project Database/dataset_pictures_msk/Zaal_B/20190323_112346.jpg"
@@ -180,6 +187,7 @@ function test {
         python3 src/test.py "$1" ${directory_database} ${csv_path}
     fi
 }
+
 
 "$@"
 ```
