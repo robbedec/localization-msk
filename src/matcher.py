@@ -1,3 +1,4 @@
+from pyexpat import features
 import cv2
 import numpy as np
 import pandas as pd
@@ -63,13 +64,14 @@ class PaintingMatcher():
             raise ValueError('Path is None.')
     
     @staticmethod
-    def generate_keypoints(directory_images,csv_path):
+    def generate_keypoints(directory_images,csv_path,features=300):
         neuralnet = CustomResNet()
         result = []
 
 
 
         directory_list = os.listdir(directory_images)
+        detector = cv2.ORB_create(nfeatures=features)
 
         progress = 0
         printProgressBar(progress, len(directory_list), prefix = 'Progress:', suffix = 'Complete', length = 50)
@@ -80,8 +82,6 @@ class PaintingMatcher():
             img_path = os.path.join(os.fsdecode(directory_images), filename)
             img = cv2.imread(img_path)
             img = resize_with_aspectratio(img, width=800)
-            detector = cv2.ORB_create(nfeatures=300)
-
             img_keypoints, img_descriptors = detector.detectAndCompute(img,None)
 
             keypoints = []
