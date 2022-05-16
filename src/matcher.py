@@ -8,11 +8,13 @@ import torch
 import torchvision.models as models
 import torchvision.transforms as transforms
 import scipy
+import time
 
 from PIL import Image
 from torch.autograd import Variable as V
 
 from util import resize_with_aspectratio
+from util import printProgressBar
 
 
 class CustomResNet():
@@ -65,7 +67,14 @@ class PaintingMatcher():
         neuralnet = CustomResNet()
         result = []
 
-        for file in os.listdir(directory_images):
+
+
+        directory_list = os.listdir(directory_images)
+
+        progress = 0
+        printProgressBar(progress, len(directory_list), prefix = 'Progress:', suffix = 'Complete', length = 50)
+
+        for file in directory_list:
             filename = os.fsdecode(file)
 
             img_path = os.path.join(os.fsdecode(directory_images), filename)
@@ -87,8 +96,8 @@ class PaintingMatcher():
                 keypoints.append(temp_keypoint)
                 descriptors.append(descriptor)
 
-            keypoints = np.array(keypoints).tolist()
-            descriptors = np.array(descriptors).tolist()
+            keypoints = np.array(keypoints, dtype=object).tolist()
+            descriptors = np.array(descriptors, dtype=object).tolist()
 
             parts = filename.split("__")
             photo = parts[1][4:]
@@ -103,6 +112,10 @@ class PaintingMatcher():
                 'painting_number': painting_number,
                 'fvector': json.dumps(neuralnet.get_feature_vector(img_path).tolist())
             })
+
+            # Update Progress Bar
+            progress += 1
+            printProgressBar(progress, len(directory_list), prefix = 'Progress:', suffix = 'Complete', length = 50)
 
         df = pd.DataFrame(result)
         df.to_csv(csv_path)  
@@ -227,7 +240,7 @@ class PaintingMatcher():
         return self.df.painting_number[index]
 
 if __name__ == '__main__':
-    print(sys.argv)
+    #print(sys.argv)
 
     if len(sys.argv) != 4:
         raise ValueError('Only provide a path to a video')
