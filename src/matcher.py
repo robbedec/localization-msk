@@ -5,11 +5,11 @@ import pandas as pd
 import sys
 import os
 
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
+
 import json
-import torch
-import torchvision.models as models
-import torchvision.transforms as transforms
+# import torch
+# import torchvision.models as models
+# import torchvision.transforms as transforms
 import scipy
 import time
 
@@ -19,11 +19,12 @@ from torch.autograd import Variable as V
 from util import resize_with_aspectratio
 from util import printProgressBar
 
-from keras.preprocessing import image
+import tensorflow as tf
 from keras.applications.imagenet_utils import decode_predictions, preprocess_input
 from keras.models import Model
 from tensorflow.keras.applications.vgg16 import VGG16
 from scipy.spatial import distance
+from keras.preprocessing import image
 
 
 # class CustomResNet():
@@ -92,15 +93,18 @@ class CustomResNet():
         return idx_closest
 
     def load_image(self, path):
-        img = image.load_img(path, target_size=self.model.input_shape[1:3])
-        x = image.img_to_array(img)
+        #img = image.load_img(path, target_size=self.model.input_shape[1:3])
+
+        img = tf.keras.utils.load_img(path, target_size=self.model.input_shape[1:3])
+
+        x = tf.keras.utils.img_to_array(img)
         x = np.expand_dims(x, axis=0)
         x = preprocess_input(x)
         return img, x
 
     def preprocess_convert(self, img):
-        img = image.smart_resize(img, self.model.input_shape[1:3])
-        x = image.img_to_array(img)
+        res = tf.keras.preprocessing.image.smart_resize(img, self.model.input_shape[1:3])
+        x = tf.keras.utils.img_to_array(res)
         x = np.expand_dims(x, axis=0)
         x = preprocess_input(x)
         return x        
@@ -190,26 +194,16 @@ class PaintingMatcher():
         keypoints_result = []
         keypoint_array  =  np.array(pd.read_json(keypoint_array), dtype=object)
         for  p in keypoint_array:
-            print(p)
-            # temp = cv2.KeyPoint(
-            #     x=p[0][0],
-            #     y=p[0][1],
-            #     size=p[1],
-            #     angle=p[2],
-            #     response=p[3],
-            #     octave=p[4],
-            #     class_id=p[5],
-            # )
-
             temp = cv2.KeyPoint(
                 x=p[0][0],
                 y=p[0][1],
-                _size=p[1],
-                _angle=p[2],
-                _response=p[3],
-                _octave=p[4],
-                _class_id=p[5],
+                size=p[1],
+                angle=p[2],
+                response=p[3],
+                octave=p[4],
+                class_id=p[5],
             )
+
             keypoints_result.append(temp)
         return keypoints_result
     
@@ -227,7 +221,7 @@ class PaintingMatcher():
         kp_t, des_t = self.orb.detectAndCompute(img_t,  None)
 
 
-        current_fvec = self.neuralnet.get_feature_vector(img_t)
+        current_fvec = self.neuralnet.cosine_match(img_t, self.df)
 
         lowest_distance = 10000000000.0
         index = 0
@@ -291,11 +285,13 @@ class PaintingMatcher():
 
 
 
-            cv2.namedWindow("Resnet", flags=cv2.WINDOW_NORMAL)
+
             img_path = os.path.join(self.directory, self.df.iloc[current_fvec[0]].id)
-            img = image.load_img(img_path)
-            cv2.imshow("Resnet ", img)
-            cv2.waitKey(0)
+            img = cv2.imread(img_path, flags = cv2.IMREAD_COLOR)
+            img = resize_with_aspectratio(img, width=800)
+            cv2.namedWindow("Resnet", flags=cv2.WINDOW_NORMAL)
+            cv2.imshow("Resnet", img)
+            cv2.waitKey(1)
 
         return distances
 
