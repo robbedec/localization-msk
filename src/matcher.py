@@ -52,8 +52,9 @@ class CustomResNet():
         return feature_vector.numpy()[0, :, 0, 0]
 
 class PaintingMatcher():
-    def __init__(self, path=None, directory=None, features=300):
+    def __init__(self, path=None, directory=None, features=300, include_fvector=False):
         self.directory = directory
+        self.include_fvector = include_fvector
 
         if path is not None:
             self.load_keypoints(path)
@@ -66,8 +67,6 @@ class PaintingMatcher():
     def generate_keypoints(directory_images,csv_path):
         neuralnet = CustomResNet()
         result = []
-
-
 
         directory_list = os.listdir(directory_images)
 
@@ -154,31 +153,33 @@ class PaintingMatcher():
         self.df = pd.read_csv(data_path, ",")
         self.df['descriptors'] = self.df['descriptors'].apply(lambda x: PaintingMatcher.convert_descriptors(x))
         self.df['keypoints'] = self.df['keypoints'].apply(lambda x: PaintingMatcher.convert_keypoints(x))
-        self.df['fvector'] = self.df['fvector'].apply(lambda x: PaintingMatcher.convert_fvector(x))
+        
+        if self.include_fvector:
+            self.df['fvector'] = self.df['fvector'].apply(lambda x: PaintingMatcher.convert_fvector(x))
 
     def match(self,img_t, display=False):
         img_t = resize_with_aspectratio(img_t, width=800)
         kp_t, des_t = self.orb.detectAndCompute(img_t,  None)
 
-        neuralnet = CustomResNet()
-        current_fvec = neuralnet.get_feature_vector(img_path=img_t)
-
         lowest_distance = 10000000000.0
-        index = 0
 
         if not type(des_t) == np.ndarray:
             return []
-        
-        # Contains indices and cos similarity
-        """
-        cos_fvec = [(i, np.dot(current_fvec, fvec)/(np.linalg.norm(current_fvec)*np.linalg.norm(fvec))) for i, fvec in enumerate(self.df['fvector'])]
-        cos_fvec = sorted(cos_fvec, key= lambda x: x[1])
-        best_fvec_indices = [i[0] for i in cos_fvec]
 
-        [cv2.imshow('orbbe' + str(i), resize_with_aspectratio(cv2.imread(os.path.join(self.directory, self.get_filename(best_fvec_indices[i]))), width=400)) for i in range(10)]
-        cv2.waitKey(0)
-        # Slice dataframe so it only contains images deemed good by the neuralnet
-        """
+        if self.include_fvector:
+            neuralnet = CustomResNet()
+            current_fvec = neuralnet.get_feature_vector(img_path=img_t)
+        
+            # Contains indices and cos similarity
+            """
+            cos_fvec = [(i, np.dot(current_fvec, fvec)/(np.linalg.norm(current_fvec)*np.linalg.norm(fvec))) for i, fvec in enumerate(self.df['fvector'])]
+            cos_fvec = sorted(cos_fvec, key= lambda x: x[1])
+            best_fvec_indices = [i[0] for i in cos_fvec]
+
+            [cv2.imshow('orbbe' + str(i), resize_with_aspectratio(cv2.imread(os.path.join(self.directory, self.get_filename(best_fvec_indices[i]))), width=400)) for i in range(10)]
+            cv2.waitKey(0)
+            # Slice dataframe so it only contains images deemed good by the neuralnet
+            """
 
         distances = []
         # TODO: niet matchen tegen de volledige db maar tegen een subset
@@ -203,13 +204,6 @@ class PaintingMatcher():
 
         distances = sorted(distances,key=lambda t: t[1])
 
-        # img_path = os.path.join(self.directory, self.df.id[index])
-        # img = cv2.imread(img_path, flags = cv2.IMREAD_COLOR)
-        # matches = self.bf.match(self.df.descriptors[index], des_t)
-
-        # matches = sorted(matches, key = lambda x: x.distance)
-        # result = cv2.drawMatches(img, self.df.keypoints[index], img_t, kp_t, matches[:20], None)
-
         if(display):
             for i in range(1):
                 if(len(distances) > i):
@@ -219,7 +213,6 @@ class PaintingMatcher():
                     matches = sorted(matches, key = lambda x:x.distance)
                     result = cv2.drawMatches(img, self.df.keypoints[distances[i][0]], img_t, kp_t, matches[:20], None)
 
-                    #cv2.imshow("Query", img_t)
                     cv2.namedWindow("Result " + str(i + 1), flags=cv2.WINDOW_NORMAL)
                     cv2.imshow("Result " + str(i + 1), result)
 
@@ -240,8 +233,6 @@ class PaintingMatcher():
         return self.df.painting_number[index]
 
 if __name__ == '__main__':
-    #print(sys.argv)
-
     if len(sys.argv) != 4:
         raise ValueError('Only provide a path to a video')
 
@@ -249,24 +240,26 @@ if __name__ == '__main__':
     directory = sys.argv[2]
     path = sys.argv[3]
 
-    #matcher = PaintingMatcher(path, directory)
+    """
+    img = cv2.imread(path_img)
+    detector = PaintingDetector(img)
+    contour_results, original_copy = detector.contours(display=True)
+    matcher  = PaintingMatcher("/Users/lennertsteyaert/Documents/GitHub/computervisie-group8/src/data/keypoints.csv","/Users/lennertsteyaert/Documents/GitHub/computervisie-group8/data/Database")
+    for i in  range(len(contour_results)):
+        affine_image,crop_img = rectify_contour(contour_results[i],img,display=False)
+        soft_matches = matcher.match(crop_img,display=False)
 
-    #img = cv2.imread(path_img)        
-    #print("start")
-    #cv2.imshow("Query", img)
-    #cv2.waitKey(0)
+        best_match = soft_matches[0]
 
-
-    #result = matcher.match(img)
-    #print(result)
+        room = matcher.get_room(best_match[0])
+        photo = matcher.get_photo(best_match[0])
+        painting_number = matcher.get_painting_number(best_match[0])
+        
+        print(f"Room: {room} photo: {photo} number: {painting_number}")
+    """
 
     # DO NOT RUN AGAIN
     # Sample to create keypoint file
-    directory_images = os.fsencode(sys.argv[2])   # data/Database
-    csv_path = sys.argv[3] # 'src/data/keypoints_2.csv'
-    matcher = PaintingMatcher.generate_keypoints(directory_images, csv_path)
-
-    #testpad = '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Database_paintings/Database'
-    #directory_images = os.fsencode(testpad)   # data/Database
-    #csv_path = '/home/robbedec/repos/ugent/computervisie/computervisie-group8/src/data/robbetest.csv' # 'src/data/keypoints_2.csv'
-    #matcher = PaintingMatcher.generate_keypoints(directory_images, csv_path)
+    # directory_images = os.fsencode(sys.argv[2])   # data/Database
+    # csv_path = sys.argv[3] # 'src/data/keypoints_2.csv'
+    # matcher = PaintingMatcher.generate_keypoints(directory_images, csv_path)

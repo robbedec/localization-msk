@@ -1,13 +1,11 @@
 import numpy as np
 import cv2
 import sys
-from matcher import PaintingMatcher
 
 from util import (
     resize_with_aspectratio,
     random_color,
     order_points,
-    rectify_contour
 )
 
 class PaintingDetector():
@@ -169,30 +167,3 @@ if __name__ == '__main__':
     
     detector = PaintingDetector(img)
     contour_results, original_copy = detector.contours(display=True)
-
-    # TODO: dit best allemaal verplaatsen naar een sample file
-    # want het wordt snel onoverzichtelijk.
-    # Misschien zelfs naar main.py omdat dit werkelijke functionaliteit is.
-
-    #directory_database = '/media/robbedec/BACKUP/ugent/master/computervisie/project/data/Database_paintings/Database'
-    #csv_path='/home/robbedec/repos/ugent/computervisie/computervisie-group8/src/data/keypoints.csv'
-    #matcher = PaintingMatcher(csv_path, directory_database)
-    """
-    matcher  = PaintingMatcher("/Users/lennertsteyaert/Documents/GitHub/computervisie-group8/src/data/keypoints.csv","/Users/lennertsteyaert/Documents/GitHub/computervisie-group8/data/Database")
-    #matcher  = PaintingMatcher("data/keypoints.csv","../../data/Database")
-
-    
-    for i in  range(len(contour_results)):
-        affine_image,crop_img = rectify_contour(contour_results[i],img,display=False)
-        soft_matches = matcher.match(crop_img,display=False)
-
-        best_match = soft_matches[0]
-
-        room = matcher.get_room(best_match[0])
-
-        photo = matcher.get_photo(best_match[0])
-
-        painting_number = matcher.get_painting_number(best_match[0])
-        
-        print(f"Room: {room} photo: {photo} number: {painting_number}")
-    """
