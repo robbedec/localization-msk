@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 import sys
 import os
+
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
 import json
 import torch
 import torchvision.models as models
@@ -17,45 +19,91 @@ from torch.autograd import Variable as V
 from util import resize_with_aspectratio
 from util import printProgressBar
 
+from keras.preprocessing import image
+from keras.applications.imagenet_utils import decode_predictions, preprocess_input
+from keras.models import Model
+from tensorflow.keras.applications.vgg16 import VGG16
+from scipy.spatial import distance
+
+
+# class CustomResNet():
+#     def __init__(self):
+#         self.model = models.resnet18()
+#         self.model.eval()
+    
+#     def get_feature_vector(self, img_path):
+#         # https://towardsdatascience.com/recommending-similar-images-using-pytorch-da019282770c
+
+#         feature_layer = self.model.avgpool
+#         feature_vector = torch.zeros(1, 512, 1, 1)
+
+#         # Define image manipulations and process image using standard ResNet parameters.
+#         img = Image.open(img_path) if isinstance(img_path, str) else Image.fromarray(img_path)
+#         centre_crop = transforms.Compose([
+#             # #transforms.Resize((224,224)),
+#             # transforms.CenterCrop(224),
+#             # #transforms.RandomResizedCrop(224),
+#             # transforms.ToTensor(),
+#             # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+
+#             transforms.Resize(224),
+#             #transforms.CenterCrop(224),
+#             transforms.ToTensor(),
+#             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+#         ])
+#         processed_img = V(centre_crop(img).unsqueeze(0))
+        
+#         # Register hook in the forward pass that copies the feature vector out
+#         # of the Neural Net.
+#         def copy_hook(m, i, o):
+#             feature_vector.copy_(o.data)
+#         h = feature_layer.register_forward_hook(copy_hook)
+
+#         # Apply forward pass
+#         fp = self.model.forward(processed_img) 
+        
+#         h.remove()
+#         return feature_vector.numpy()[0, :, 0, 0]
 
 class CustomResNet():
     def __init__(self):
-        self.model = models.resnet18()
-        self.model.eval()
+        self.pretrained_model = VGG16(weights='imagenet', include_top=True)
+        self.model = Model(inputs=self.pretrained_model.input, outputs=self.pretrained_model.get_layer("fc2").output)
     
     def get_feature_vector(self, img_path):
-        # https://towardsdatascience.com/recommending-similar-images-using-pytorch-da019282770c
+        # Reference
 
-        feature_layer = self.model.avgpool
-        feature_vector = torch.zeros(1, 512, 1, 1)
+        img, x = self.load_image(img_path);
+        feat = self.model.predict(x)[0]
 
-        # Define image manipulations and process image using standard ResNet parameters.
-        img = Image.open(img_path) if isinstance(img_path, str) else Image.fromarray(img_path)
-        centre_crop = transforms.Compose([
-            # #transforms.Resize((224,224)),
-            # transforms.CenterCrop(224),
-            # #transforms.RandomResizedCrop(224),
-            # transforms.ToTensor(),
-            # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        return feat
 
-            transforms.Resize(224),
-            #transforms.CenterCrop(224),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ])
-        processed_img = V(centre_crop(img).unsqueeze(0))
-        
-        # Register hook in the forward pass that copies the feature vector out
-        # of the Neural Net.
-        def copy_hook(m, i, o):
-            feature_vector.copy_(o.data)
-        h = feature_layer.register_forward_hook(copy_hook)
 
-        # Apply forward pass
-        fp = self.model.forward(processed_img) 
-        
-        h.remove()
-        return feature_vector.numpy()[0, :, 0, 0]
+    def cosine_match(self,img,df):
+        img_array = self.preprocess_convert(img)
+        vectors = self.model.predict(img_array)[0]
+
+        similar_idx_cosine = [ distance.cosine(vectors, feat) for feat in df["fvector"]]
+        idx_closest = sorted(range(len(similar_idx_cosine)), key=lambda k: similar_idx_cosine[k])[0:6]
+
+        for i in idx_closest:
+            print(i)
+
+        return idx_closest
+
+    def load_image(self, path):
+        img = image.load_img(path, target_size=self.model.input_shape[1:3])
+        x = image.img_to_array(img)
+        x = np.expand_dims(x, axis=0)
+        x = preprocess_input(x)
+        return img, x
+
+    def preprocess_convert(self, img):
+        img = image.smart_resize(img, self.model.input_shape[1:3])
+        x = image.img_to_array(img)
+        x = np.expand_dims(x, axis=0)
+        x = preprocess_input(x)
+        return x        
 
 class PaintingMatcher():
     def __init__(self, path=None, directory=None, features=300):
@@ -67,6 +115,8 @@ class PaintingMatcher():
             self.bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
         else:
             raise ValueError('Path is None.')
+
+        self.neuralnet = CustomResNet()    
     
     @staticmethod
     def generate_keypoints(directory_images,csv_path,features=300):
@@ -138,16 +188,27 @@ class PaintingMatcher():
     @staticmethod
     def convert_keypoints(keypoint_array):
         keypoints_result = []
-        keypoint_array  =  np.array(pd.read_json(keypoint_array))
+        keypoint_array  =  np.array(pd.read_json(keypoint_array), dtype=object)
         for  p in keypoint_array:
+            print(p)
+            # temp = cv2.KeyPoint(
+            #     x=p[0][0],
+            #     y=p[0][1],
+            #     size=p[1],
+            #     angle=p[2],
+            #     response=p[3],
+            #     octave=p[4],
+            #     class_id=p[5],
+            # )
+
             temp = cv2.KeyPoint(
                 x=p[0][0],
                 y=p[0][1],
-                size=p[1],
-                angle=p[2],
-                response=p[3],
-                octave=p[4],
-                class_id=p[5],
+                _size=p[1],
+                _angle=p[2],
+                _response=p[3],
+                _octave=p[4],
+                _class_id=p[5],
             )
             keypoints_result.append(temp)
         return keypoints_result
@@ -165,8 +226,8 @@ class PaintingMatcher():
         img_t = resize_with_aspectratio(img_t, width=800)
         kp_t, des_t = self.orb.detectAndCompute(img_t,  None)
 
-        neuralnet = CustomResNet()
-        current_fvec = neuralnet.get_feature_vector(img_path=img_t)
+
+        current_fvec = self.neuralnet.get_feature_vector(img_t)
 
         lowest_distance = 10000000000.0
         index = 0
@@ -228,7 +289,13 @@ class PaintingMatcher():
                     cv2.namedWindow("Result " + str(i + 1), flags=cv2.WINDOW_NORMAL)
                     cv2.imshow("Result " + str(i + 1), result)
 
-            cv2.waitKey(1)
+
+
+            cv2.namedWindow("Resnet", flags=cv2.WINDOW_NORMAL)
+            img_path = os.path.join(self.directory, self.df.iloc[current_fvec[0]].id)
+            img = image.load_img(img_path)
+            cv2.imshow("Resnet ", img)
+            cv2.waitKey(0)
 
         return distances
 
