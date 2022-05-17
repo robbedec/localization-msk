@@ -16,7 +16,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 class Localiser():
 
-    def __init__(self, matcher=PaintingMatcher("src/data/keypoints.csv","../data/Database"), graph=None, hmm_distribution='linear') -> None:
+    def __init__(self, matcher, graph=None, hmm_distribution='linear') -> None:
         self.matcher = matcher
         self.previous = "..."
         if graph == None:
