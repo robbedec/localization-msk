@@ -127,11 +127,12 @@ class PaintingMatcher():
         self.neuralnet = CustomResNet()    
     
     @staticmethod
-    def generate_keypoints(directory_images,csv_path,features=300):
-        neuralnet = CustomResNet()
+    def generate_keypoints(directory_images, csv_path, features=300, fvector_state = True):
+        
+        neuralnet = None
+        if fvector_state:
+            neuralnet = CustomResNet()
         result = []
-
-
 
         directory_list = os.listdir(directory_images)
         detector = cv2.ORB_create(nfeatures=features)
@@ -166,15 +167,26 @@ class PaintingMatcher():
             photo = parts[1][4:]
             painting_number = int(parts[2][:2])
             
-            result.append({
-                'id':filename,
-                'keypoints': json.dumps(keypoints),
-                'descriptors': json.dumps(descriptors),
-                'room':  parts[0],
-                'photo': photo,
-                'painting_number': painting_number,
-                'fvector': json.dumps(neuralnet.get_feature_vector(img_path).tolist())
-            })
+            if fvector_state:
+                result.append({
+                    'id':filename,
+                    'keypoints': json.dumps(keypoints),
+                    'descriptors': json.dumps(descriptors),
+                    'room':  parts[0],
+                    'photo': photo,
+                    'painting_number': painting_number,
+                    'fvector': json.dumps(neuralnet.get_feature_vector(img_path).tolist())
+                })
+            else:
+                result.append({
+                    'id':filename,
+                    'keypoints': json.dumps(keypoints),
+                    'descriptors': json.dumps(descriptors),
+                    'room':  parts[0],
+                    'photo': photo,
+                    'painting_number': painting_number,
+                    'fvector': json.dumps([])
+                })         
 
             # Update Progress Bar
             progress += 1
