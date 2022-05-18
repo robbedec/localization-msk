@@ -86,7 +86,7 @@ class CustomResNet():
 
         distances = []
         similar_idx_cosine = [ distance.cosine(vectors, feat) for feat in df["fvector"]]
-        idx_closest = sorted(range(len(similar_idx_cosine)), key=lambda k: similar_idx_cosine[k])[0:6]
+        idx_closest = sorted(range(len(similar_idx_cosine)), key=lambda k: similar_idx_cosine[k])
 
         # for i in idx_closest:
         #     print(i)
