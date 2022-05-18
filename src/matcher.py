@@ -232,7 +232,7 @@ class PaintingMatcher():
         self.df['keypoints'] = self.df['keypoints'].apply(lambda x: PaintingMatcher.convert_keypoints(x))
         self.df['fvector'] = self.df['fvector'].apply(lambda x: PaintingMatcher.convert_fvector(x))
 
-    def match(self,img_t, display=False, mode=1):
+    def match(self,img_t, display=False, mode=0):
         if(mode == 2):
             img_t = resize_with_aspectratio(img_t, width=800)
             kp_t, des_t = self.orb.detectAndCompute(img_t,  None)
