@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import time
 
 from shapely.geometry import Polygon
+import json
 
 from detector import PaintingDetector
 from matcher import PaintingMatcher
@@ -220,10 +221,15 @@ def benchmark_matcher():
     print('BENCHMARKING PAINTING MATCHER')
     print('---------------------------------------------')
 
-    df = pd.DataFrame(columns=['filename', 'result_50_features', 'distance_50_features', 'time_50_features',
-                                 'result_100_features', 'distance_100_features', 'time_100_features',
-                                 'result_200_features', 'distance_200_features', 'time_200_features',
-                                 'result_300_features', 'distance_300_features', 'time_300_features'])
+    df = pd.DataFrame(columns=['filename', 'result_50_features', 'distance_50_features', 
+                                 'second_result_50_features', 'second_distance_50_features', 'time_50_features',
+                                 'result_100_features', 'distance_100_features',
+                                 'second_result_100_features', 'second_distance_100_features', 'time_100_features',
+                                 'result_200_features', 'distance_200_features',
+                                 'second_result_200_features', 'second_distance_200_features', 'time_200_features',
+                                 'result_300_features', 'distance_300_features',
+                                 'second_result_300_features', 'second_distance_300_features', 'time_300_features', 
+                                 'result_fvector', 'distance_fvector','second_result_fvector', 'second_distance_fvector', 'time_fvector'])
 
     # df = pd.DataFrame(columns=['filename'])
 
@@ -233,7 +239,7 @@ def benchmark_matcher():
     print('----------------')
 
     features  =  50
-    df = match_number_of_features(features, df, 'result_50_features', 'distance_50_features', 'time_50_features')
+    df = match_number_of_features(features, df, 'result_50_features', 'distance_50_features', 'time_50_features',True)
 
     print('----------------')
     print('100 FEATURES')
@@ -256,8 +262,8 @@ def benchmark_matcher():
     # print(df.head())
     df.to_csv(OUT_PATH)  
 
-def match_number_of_features(features, df, col_filename, col_distance, col_time):
-    PaintingMatcher.generate_keypoints(IMAGES_PATH,CSV_PATH, features)
+def match_number_of_features(features, df, col_filename, col_distance, col_time, overwrite=False):
+    #PaintingMatcher.generate_keypoints(IMAGES_PATH,CSV_PATH, features)
 
     matcher = PaintingMatcher(CSV_PATH,IMAGES_PATH,features)
 
@@ -280,43 +286,86 @@ def match_number_of_features(features, df, col_filename, col_distance, col_time)
         contour_results, img_with_contours = detector.contours(display=False)
 
 
+        # ORB MATCHING
         filename_match = []
         distance = []
+        filename_match_second = []
+        distance_second = []
         timing = []
 
-        #print(contour_results)
+        # Fvector matching
+        filename_match_fv = []
+        distance_fv = []
+        filename_match_second_fv = []
+        distance_second_fv = []
+        timing_fv = []
 
-
+  
         if(not (filename in df['filename'].unique())):
             # df = pd.concat([df, pd.DataFrame.from_records([{ 'filename':filename }])])
             #df.append({ 'filename':filename }, ignore_index = True)
-            df.loc[progress] = [filename, None, None, None, None, None, None, None, None, None, None, None, None]
+            df.loc[progress] = [filename, None, None, None, None, None, None, None, None, None, None, None, None,None,None,None,None,None,None,None,None,None,None,None,None,None]
 
 
         for contour in contour_results:
-            #print("rectify")
+            # ORB benchmark
             affine_image,crop_img = rectify_contour(contour, img, display=False)
 
             tic = time.perf_counter()
-            distances = matcher.match(crop_img)
+            distances = matcher.match(crop_img, mode=0)
             toc = time.perf_counter()
 
 
-            if len(distances) > 1:
+            if len(distances) > 0:
                 filename_match.append(matcher.get_filename(distances[0][0]))
                 distance.append(distances[0][1])
 
+            if len(distances) >= 1:
+                filename_match_second.append(matcher.get_filename(distances[1][0]))
+                distance_second.append(distances[1][1])
+
             timing.append(toc-tic)
 
-        indexes = df.index[df['filename'] == filename].tolist()    
-        df.at[indexes[0], col_filename] =  filename_match
-        df.at[indexes[0], col_distance] =  distance
-        df.at[indexes[0], col_time] =  timing
+            if(overwrite == True):
+                # Fvector  benchmark
+                tic = time.perf_counter()
+                distances = matcher.match(crop_img, mode=1)
+                toc = time.perf_counter()
+
+                if len(distances) > 0:
+                    filename_match_fv.append(matcher.get_filename(distances[0][0]))
+                    distance_fv.append(distances[0][1])
+
+                if len(distances) >= 1:
+                    filename_match_second_fv.append(matcher.get_filename(distances[1][0]))
+                    distance_second_fv.append(distances[1][1])
+
+                timing_fv.append(toc-tic)
+
+
+        indexes = df.index[df['filename'] == filename].tolist()   
+        df.at[indexes[0], col_filename] =  json.dumps(filename_match)
+        df.at[indexes[0], col_distance] =  json.dumps(distance)
+
+        df.at[indexes[0], "second_" + col_filename] =  json.dumps(filename_match_second)
+        df.at[indexes[0], "second_" + col_distance] =  json.dumps(distance_second)
+
+        df.at[indexes[0], col_time] =  json.dumps(timing)
+
+        if(overwrite == True):
+
+            df.at[indexes[0], 'result_fvector'] =  json.dumps(filename_match_fv)
+            df.at[indexes[0], 'distance_fvector'] =  json.dumps(distance_fv)
+
+            df.at[indexes[0], 'second_result_fvector'] =  json.dumps(filename_match_second_fv)
+            df.at[indexes[0], 'second_distance_fvector'] =  json.dumps(distance_second_fv)
+
+            df.at[indexes[0], 'time_fvector'] =  json.dumps(timing_fv)
 
    
         progress += 1
         printProgressBar(progress, len(directory_list), prefix = 'Progress matching:', suffix = 'Complete', length = 50)
-        #break
+        break
 
     return df
 
