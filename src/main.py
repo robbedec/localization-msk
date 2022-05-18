@@ -73,7 +73,7 @@ def main():
     # Create pipeline instances
     preproc = FrameProcessor(calibration_file, (width, height))
     detector = PaintingDetector()
-    matcher = PaintingMatcher(csv_path, database_file)
+    matcher = PaintingMatcher(csv_path, database_file,features=100)
     localiser = Localiser(matcher=matcher, hmm_distribution='gaussian')
 
     map_img = cv2.imread(map_path)

@@ -355,6 +355,8 @@ class PaintingMatcher():
                         result = cv2.drawMatches(img, self.df.keypoints[distances[i][0]], img_t, kp_t, matches[:20], None)
 
                         #cv2.imshow("Query", img_t)
+                        txt = str(distances[i][1])
+                        cv2.putText(img=result, text=txt, org=(100, 100), fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=8, color=(0, 255, 0), thickness=4)
                         cv2.namedWindow("Result " + str(i + 1), flags=cv2.WINDOW_NORMAL)
                         cv2.imshow("Result " + str(i + 1), result)
                     
@@ -425,6 +427,6 @@ if __name__ == '__main__':
 
     # DO NOT RUN AGAIN
     # Sample to create keypoint file
-    # directory_images = os.fsencode(sys.argv[2])   # data/Database
-    # csv_path = sys.argv[3] # 'src/data/keypoints_2.csv'
-    # matcher = PaintingMatcher.generate_keypoints(directory_images, csv_path)
+    directory_images = os.fsencode(sys.argv[2])   # data/Database
+    csv_path = sys.argv[3] # 'src/data/keypoints_2.csv'
+    matcher = PaintingMatcher.generate_keypoints(directory_images,csv_path,100)
