@@ -4,10 +4,14 @@ import os
 import cv2
 import argparse
 import matplotlib.pyplot as plt
+import time
 
 from shapely.geometry import Polygon
+import json
 
 from detector import PaintingDetector
+from matcher import PaintingMatcher
+from util import printProgressBar, rectify_contour
 
 """
 Usage:
@@ -216,6 +220,264 @@ def benchmark_matcher():
     print('---------------------------------------------')
     print('BENCHMARKING PAINTING MATCHER')
     print('---------------------------------------------')
+
+    df = pd.DataFrame(columns=['filename', 'result_50_features', 'distance_50_features', 
+                                 'second_result_50_features', 'second_distance_50_features', 'time_50_features',
+                                 'result_100_features', 'distance_100_features',
+                                 'second_result_100_features', 'second_distance_100_features', 'time_100_features',
+                                 'result_200_features', 'distance_200_features',
+                                 'second_result_200_features', 'second_distance_200_features', 'time_200_features',
+                                 'result_300_features', 'distance_300_features',
+                                 'second_result_300_features', 'second_distance_300_features', 'time_300_features', 
+                                 'result_fvector', 'distance_fvector','second_result_fvector', 'second_distance_fvector', 'time_fvector'])
+
+
+    print('----------------')
+    print('50 FEATURES')
+    print('----------------')
+
+    features  =  50
+    df = match_number_of_features(features, df, 'result_50_features', 'distance_50_features', 'time_50_features',True)
+
+    print('----------------')
+    print('100 FEATURES')
+    print('----------------')
+    features  = 100
+    match_number_of_features(features, df, 'result_100_features', 'distance_100_features', 'time_100_features')
+
+    print('----------------')
+    print('200 FEATURES')
+    print('----------------')
+    features  = 200
+    match_number_of_features(features, df,'result_200_features', 'distance_200_features', 'time_200_features')
+
+    print('----------------')
+    print('300 FEATURES')
+    print('----------------')
+    features  = 300
+    match_number_of_features(features, df, 'result_300_features', 'distance_300_features', 'time_300_features')
+
+
+    df.to_csv(OUT_PATH)  
+
+
+def match_number_of_features(features, df, col_filename, col_distance, col_time, overwrite=False):
+    # Generate database file (for a particular amount of features)
+    #if(not overwrite):
+    PaintingMatcher.generate_keypoints(IMAGES_PATH,CSV_PATH, features, fvector_state=overwrite)
+
+    # Set-up matcher and detector
+    detector = PaintingDetector()
+    matcher = PaintingMatcher(CSV_PATH,IMAGES_PATH,features)
+
+    directory_list = "/home/server/Documents/Github/computervisie-group8/data/Computervisie 2020 Project Database/dataset_pictures_msk"
+
+
+    progress_dic = 0
+    progress = 0
+    printProgressBar(progress_dic, len(os.listdir(directory_list)), prefix = 'Progress matching:', suffix = 'Complete', length = 50)
+
+    # Loop through directory which has subfolders
+    for file in os.listdir(directory_list):
+        directory = os.fsdecode(file)
+        sub_dir_path = directory_list + '/' + directory
+
+        if (os.path.isdir(sub_dir_path)):
+
+            for image_name in os.listdir(sub_dir_path):
+                filename = os.fsdecode(image_name)
+
+                # Load image
+                img_path = sub_dir_path + '/' + filename
+                img = cv2.imread(img_path)
+
+                # Pass image through detector
+                detector.img = img
+                contour_results, img_with_contours = detector.contours(display=False)
+
+
+                # ORB MATCHING
+                filename_match = []
+                distance = []
+                filename_match_second = []
+                distance_second = []
+                timing = []
+
+                # Fvector matching
+                filename_match_fv = []
+                distance_fv = []
+                filename_match_second_fv = []
+                distance_second_fv = []
+                timing_fv = []
+
+
+                # Add row when filename is not in dataframe
+                if(not (filename in df['filename'].unique())):
+                    df.loc[progress] = [filename, None, None, None, None, None, None, None, None, None, None, None, None,None,None,None,None,None,None,None,None,None,None,None,None,None]
+
+                # Loop through all detected boxes
+                for contour in contour_results:
+                    # ORB benchmark
+                    affine_image,crop_img = rectify_contour(contour, img, display=False)
+
+                    tic = time.perf_counter()
+                    distances = matcher.match(crop_img, mode=0)
+                    toc = time.perf_counter()
+
+
+                    if len(distances) > 0:
+                        filename_match.append(matcher.get_filename(distances[0][0]))
+                        distance.append(distances[0][1])
+
+                    if len(distances) > 1:
+                        filename_match_second.append(matcher.get_filename(distances[1][0]))
+                        distance_second.append(distances[1][1])
+
+                    timing.append(toc-tic)
+
+                    if(overwrite == True):
+                        # Fvector  benchmark
+                        tic = time.perf_counter()
+                        distances = matcher.match(crop_img, mode=1)
+                        toc = time.perf_counter()
+
+                        if len(distances) > 0:
+                            filename_match_fv.append(matcher.get_filename(distances[0][0]))
+                            distance_fv.append(distances[0][1])
+
+                        if len(distances) > 1:
+                            filename_match_second_fv.append(matcher.get_filename(distances[1][0]))
+                            distance_second_fv.append(distances[1][1])
+
+                        timing_fv.append(toc-tic)
+
+
+                indexes = df.index[df['filename'] == filename].tolist()   
+
+                df.at[indexes[0], col_filename] =  json.dumps(filename_match)
+                df.at[indexes[0], col_distance] =  json.dumps(distance)
+                df.at[indexes[0], "second_" + col_filename] =  json.dumps(filename_match_second)
+                df.at[indexes[0], "second_" + col_distance] =  json.dumps(distance_second)
+                df.at[indexes[0], col_time] =  json.dumps(timing)
+
+                if(overwrite == True):
+                    df.at[indexes[0], 'result_fvector'] =  json.dumps(filename_match_fv)
+                    df.at[indexes[0], 'distance_fvector'] =  json.dumps(distance_fv)
+                    df.at[indexes[0], 'second_result_fvector'] =  json.dumps(filename_match_second_fv)
+                    df.at[indexes[0], 'second_distance_fvector'] =  json.dumps(distance_second_fv)
+                    df.at[indexes[0], 'time_fvector'] =  json.dumps(timing_fv)
+
+                
+                progress += 1
+
+            progress_dic += 1    
+            printProgressBar(progress_dic, len(os.listdir(directory_list)), prefix = 'Progress matching:', suffix = 'Complete', length = 50)
+
+    return df
+
+
+# def match_number_of_features(features, df, col_filename, col_distance, col_time, overwrite=False):
+#     #PaintingMatcher.generate_keypoints(IMAGES_PATH,CSV_PATH, features)
+
+#     matcher = PaintingMatcher(CSV_PATH,IMAGES_PATH,features)
+
+#     directory_list = os.listdir("data/Computervisie 2020 Project Database/test_pictures_msk")
+
+#     detector = PaintingDetector()
+
+#     progress = 0
+#     printProgressBar(progress, len(directory_list), prefix = 'Progress matching:', suffix = 'Complete', length = 50)
+
+#     for file in directory_list:
+#         filename = os.fsdecode(file)
+#         #img_path = os.path.join(os.fsdecode(IMAGES_PATH), filename)
+
+#         img_path = "data/Computervisie 2020 Project Database/test_pictures_msk/"  + filename
+#         img = cv2.imread(img_path)
+
+
+#         detector.img = img
+#         contour_results, img_with_contours = detector.contours(display=False)
+
+
+#         # ORB MATCHING
+#         filename_match = []
+#         distance = []
+#         filename_match_second = []
+#         distance_second = []
+#         timing = []
+
+#         # Fvector matching
+#         filename_match_fv = []
+#         distance_fv = []
+#         filename_match_second_fv = []
+#         distance_second_fv = []
+#         timing_fv = []
+
+  
+#         if(not (filename in df['filename'].unique())):
+#             # df = pd.concat([df, pd.DataFrame.from_records([{ 'filename':filename }])])
+#             #df.append({ 'filename':filename }, ignore_index = True)
+#             df.loc[progress] = [filename, None, None, None, None, None, None, None, None, None, None, None, None,None,None,None,None,None,None,None,None,None,None,None,None,None]
+
+
+#         for contour in contour_results:
+#             # ORB benchmark
+#             affine_image,crop_img = rectify_contour(contour, img, display=False)
+
+#             tic = time.perf_counter()
+#             distances = matcher.match(crop_img, mode=0)
+#             toc = time.perf_counter()
+
+
+#             if len(distances) > 0:
+#                 filename_match.append(matcher.get_filename(distances[0][0]))
+#                 distance.append(distances[0][1])
+
+#             if len(distances) >= 1:
+#                 filename_match_second.append(matcher.get_filename(distances[1][0]))
+#                 distance_second.append(distances[1][1])
+
+#             timing.append(toc-tic)
+
+#             if(overwrite == True):
+#                 # Fvector  benchmark
+#                 tic = time.perf_counter()
+#                 distances = matcher.match(crop_img, mode=1)
+#                 toc = time.perf_counter()
+
+#                 if len(distances) > 0:
+#                     filename_match_fv.append(matcher.get_filename(distances[0][0]))
+#                     distance_fv.append(distances[0][1])
+
+#                 if len(distances) >= 1:
+#                     filename_match_second_fv.append(matcher.get_filename(distances[1][0]))
+#                     distance_second_fv.append(distances[1][1])
+
+#                 timing_fv.append(toc-tic)
+
+
+#         indexes = df.index[df['filename'] == filename].tolist()   
+
+#         df.at[indexes[0], col_filename] =  json.dumps(filename_match)
+#         df.at[indexes[0], col_distance] =  json.dumps(distance)
+#         df.at[indexes[0], "second_" + col_filename] =  json.dumps(filename_match_second)
+#         df.at[indexes[0], "second_" + col_distance] =  json.dumps(distance_second)
+#         df.at[indexes[0], col_time] =  json.dumps(timing)
+
+#         if(overwrite == True):
+#             df.at[indexes[0], 'result_fvector'] =  json.dumps(filename_match_fv)
+#             df.at[indexes[0], 'distance_fvector'] =  json.dumps(distance_fv)
+#             df.at[indexes[0], 'second_result_fvector'] =  json.dumps(filename_match_second_fv)
+#             df.at[indexes[0], 'second_distance_fvector'] =  json.dumps(distance_second_fv)
+#             df.at[indexes[0], 'time_fvector'] =  json.dumps(timing_fv)
+
+   
+#         progress += 1
+#         printProgressBar(progress, len(directory_list), prefix = 'Progress matching:', suffix = 'Complete', length = 50)
+#         break
+
+#     return df
 
 # SETUP:
 if what == 'all':
