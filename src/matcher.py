@@ -27,6 +27,8 @@ from scipy.spatial import distance
 from keras.preprocessing import image
 
 
+LENNERT = False
+
 # class CustomResNet():
 #     def __init__(self):
 #         self.model = models.resnet18()
@@ -96,22 +98,36 @@ class CustomResNet():
         return distances
 
     def load_image(self, path):
-        #img = image.load_img(path, target_size=self.model.input_shape[1:3])
+        global LENNERT
+        if LENNERT:
+            img = tf.keras.preprocessing.image.load_img(path, target_size=self.model.input_shape[1:3])
+            x = tf.keras.preprocessing.image.img_to_array(img)
+            x = np.expand_dims(x, axis=0)
+            x = preprocess_input(x)
 
-        img = tf.keras.utils.load_img(path, target_size=self.model.input_shape[1:3])
-        x = tf.keras.utils.img_to_array(img)
-        x = np.expand_dims(x, axis=0)
-        x = preprocess_input(x)
-        return img, x
+            return img, x
+        else:
+            img = tf.image.load_img(path, target_size=self.model.input_shape[1:3])
+            x = tf.keras.utils.img_to_array(img)
+            x = np.expand_dims(x, axis=0)
+            x = preprocess_input(x)
+
+            return img, x
 
     def preprocess_convert(self, img):
         #res = tf.keras.preprocessing.image.smart_resize(img, self.model.input_shape[1:3])
-        
-        res = tf.image.resize(img, self.model.input_shape[1:3])
-        x = tf.keras.utils.img_to_array(res)
-        x = np.expand_dims(x, axis=0)
-        #x = preprocess_input(x)
-        return x        
+        if LENNERT:
+            res = tf.image.resize(img, self.model.input_shape[1:3])
+            x = tf.keras.preprocessing.image.img_to_array(res)
+            x = np.expand_dims(x, axis=0)
+            #x = preprocess_input(x)
+            return x        
+        else:
+            res = tf.image.resize(img, self.model.input_shape[1:3])
+            x = tf.keras.utils.img_to_array(res)
+            x = np.expand_dims(x, axis=0)
+            #x = preprocess_input(x)
+            return x        
 
 class PaintingMatcher():
     def __init__(self, path=None, directory=None, features=300, include_fvector=False):
@@ -210,18 +226,34 @@ class PaintingMatcher():
     def convert_keypoints(keypoint_array):
         keypoints_result = []
         keypoint_array  =  np.array(pd.read_json(keypoint_array), dtype=object)
-        for  p in keypoint_array:
-            temp = cv2.KeyPoint(
-                x=p[0][0],
-                y=p[0][1],
-                size=p[1],
-                angle=p[2],
-                response=p[3],
-                octave=p[4],
-                class_id=p[5],
-            )
 
-            keypoints_result.append(temp)
+        if LENNERT:
+            for  p in keypoint_array:
+                temp = cv2.KeyPoint(
+                    x=p[0][0],
+                    y=p[0][1],
+                    _size=p[1],
+                    _angle=p[2],
+                    _response=p[3],
+                    _octave=p[4],
+                    _class_id=p[5],
+                )
+
+                keypoints_result.append(temp)
+        else:
+            for  p in keypoint_array:
+                temp = cv2.KeyPoint(
+                    x=p[0][0],
+                    y=p[0][1],
+                    size=p[1],
+                    angle=p[2],
+                    response=p[3],
+                    octave=p[4],
+                    class_id=p[5],
+                )
+
+                keypoints_result.append(temp)
+
         return keypoints_result
     
     def load_keypoints(self, data_path):
@@ -300,7 +332,7 @@ class PaintingMatcher():
                 cv2.namedWindow("Query", flags=cv2.WINDOW_NORMAL)
                 cv2.imshow("Query", img_t)
 
-                for i in range(3):
+                for i in range(1):
                     if(len(current_fvec) > i):
                         img_path = os.path.join(self.directory, self.df.iloc[current_fvec[i]].id)
                         img = cv2.imread(img_path, flags = cv2.IMREAD_COLOR)
@@ -370,13 +402,16 @@ class PaintingMatcher():
             current_fvec = self.neuralnet.cosine_match(img_t, self.df)
             if(display):
                 cv2.namedWindow("Query", flags=cv2.WINDOW_NORMAL)
-                cv2.imshow("Query", img_t)
+                res = resize_with_aspectratio(img_t, width=400)
+                cv2.imshow("Query", res)
 
-                for i in range(3):
+                for i in range(1):
                     if(len(current_fvec) > i):
                         img_path = os.path.join(self.directory, self.df.iloc[current_fvec[i][0]].id)
                         img = cv2.imread(img_path, flags = cv2.IMREAD_COLOR)
-                        img = resize_with_aspectratio(img, width=800)
+                        img = resize_with_aspectratio(img, width=400)
+                        txt = str(current_fvec[i][1])
+                        cv2.putText(img=img, text=txt, org=(50, 50), fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=1, color=(0, 255, 0), thickness=2)
                         cv2.namedWindow("Resnet " + str(i + 1), flags=cv2.WINDOW_NORMAL)
                         cv2.imshow("Resnet " + str(i + 1), img)
                     
