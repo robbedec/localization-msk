@@ -1,3 +1,4 @@
+from ast import Mod
 import cv2
 import sys
 import numpy as np
@@ -8,6 +9,12 @@ from detector import PaintingDetector
 from matcher import PaintingMatcher
 from localiser import Localiser
 from preprocessing import FrameProcessor
+from enum import Enum
+
+class Mode(Enum):
+    ORB = 0
+    FVECTOR = 1
+    COMBINATION = 2
 
 def create_map(room_pred, plan, file_path):
     # TODO: remove after room_pred are normalized.
@@ -63,6 +70,13 @@ def main():
 
     is_gopro = False
     
+
+
+    # Matching mode
+    #mode = Mode.ORB.value
+    #mode = Mode.FVECTOR.value
+    mode = Mode.COMBINATION.value
+
     # Video setup and properties
     cap = cv2.VideoCapture(video_path)
     cap.set(cv2.CAP_PROP_POS_FRAMES, 0) # fastforward in video
@@ -73,7 +87,7 @@ def main():
     # Create pipeline instances
     preproc = FrameProcessor(calibration_file, (width, height))
     detector = PaintingDetector()
-    matcher = PaintingMatcher(csv_path, database_file,features=100,include_fvector=True)
+    matcher = PaintingMatcher(csv_path, database_file,features=100,mode=mode)
     localiser = Localiser(matcher=matcher, hmm_distribution='gaussian')
 
     map_img = cv2.imread(map_path)

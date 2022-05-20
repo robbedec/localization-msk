@@ -1,4 +1,6 @@
+from operator import mod
 from pyexpat import features
+from turtle import mode
 import cv2
 import numpy as np
 import pandas as pd
@@ -27,7 +29,7 @@ from scipy.spatial import distance
 from keras.preprocessing import image
 
 
-LENNERT = False
+LENNERT = True
 
 # class CustomResNet():
 #     def __init__(self):
@@ -115,7 +117,6 @@ class CustomResNet():
             return img, x
 
     def preprocess_convert(self, img):
-        #res = tf.keras.preprocessing.image.smart_resize(img, self.model.input_shape[1:3])
         if LENNERT:
             res = tf.image.resize(img, self.model.input_shape[1:3])
             x = tf.keras.preprocessing.image.img_to_array(res)
@@ -130,9 +131,9 @@ class CustomResNet():
             return x        
 
 class PaintingMatcher():
-    def __init__(self, path=None, directory=None, features=300, include_fvector=False):
+    def __init__(self, path=None, directory=None, features=300, mode = 0):
         self.directory = directory
-        self.include_fvector = include_fvector
+        self._mode =  mode
 
         if path is not None:
             self.load_keypoints(path)
@@ -143,6 +144,15 @@ class PaintingMatcher():
 
         self.neuralnet = CustomResNet()    
     
+
+    @property
+    def mode(self):
+        return self._mode
+
+    @mode.setter
+    def mode(self, value):
+        self._mode = value
+
     @staticmethod
     def generate_keypoints(directory_images, csv_path, features=300, fvector_state = True):
         
@@ -264,163 +274,137 @@ class PaintingMatcher():
         self.df['descriptors'] = self.df['descriptors'].apply(lambda x: PaintingMatcher.convert_descriptors(x))
         self.df['keypoints'] = self.df['keypoints'].apply(lambda x: PaintingMatcher.convert_keypoints(x))
         
-        if self.include_fvector:
+        if self._mode != 0:
             self.df['fvector'] = self.df['fvector'].apply(lambda x: PaintingMatcher.convert_fvector(x))
 
-    def match(self,img_t, display=False, mode=0):
-        if(mode == 2):
-            img_t = resize_with_aspectratio(img_t, width=800)
-            kp_t, des_t = self.orb.detectAndCompute(img_t,  None)
+    def match(self,img_t, display=False):
+        distances = []
+        if(self._mode == 0):
+            distances = self.match_mode_orb(img_t,display)
+        elif(self._mode == 1):
+            distances = self.match_fvector(img_t,display)
+        else:
+            distances = self.match_combination(img_t,display)
+
+        return distances
+
+    def match_mode_orb(self, img_t, display):
+
+        img_t = resize_with_aspectratio(img_t, width=800)
+        kp_t, des_t = self.orb.detectAndCompute(img_t,  None) # Retrieve keypoints and descriptors
 
 
-            current_fvec = self.neuralnet.cosine_match(img_t, self.df)
-
-            lowest_distance = 10000000000.0
-
-            if not type(des_t) == np.ndarray:
-                return []
-            
-            # Contains indices and cos similarity
-            """
-            cos_fvec = [(i, np.dot(current_fvec, fvec)/(np.linalg.norm(current_fvec)*np.linalg.norm(fvec))) for i, fvec in enumerate(self.df['fvector'])]
-            cos_fvec = sorted(cos_fvec, key= lambda x: x[1])
-            best_fvec_indices = [i[0] for i in cos_fvec]
-
-            [cv2.imshow('orbbe' + str(i), resize_with_aspectratio(cv2.imread(os.path.join(self.directory, self.get_filename(best_fvec_indices[i]))), width=400)) for i in range(10)]
-            cv2.waitKey(0)
-            # Slice dataframe so it only contains images deemed good by the neuralnet
-            """
-
-            distances = []
-            # TODO: niet matchen tegen de volledige db maar tegen een subset
-            #for i, desc in enumerate(self.df.iloc[best_fvec_indices]['descriptors']):
-            for i, desc in enumerate(self.df['descriptors']):
-                matches = self.bf.match(desc, des_t)
-                matches = sorted(matches, key = lambda x:x.distance)
-
-                sum = 0
-                if(len(matches) >= 20):
-                    out = []
-                    for m in matches[:20]:
-                        out.append(m.distance)
-            
-                    for m in matches[:20]:
-                        sum += m.distance
-
-                    distances.append((i,sum))
-                    if sum < lowest_distance:
-                        lowest_distance = sum
-
-            distances = sorted(distances,key=lambda t: t[1])
-
-
-            if(display):
-                # for i in range(1):
-                #     if(len(distances) > i):
-                #         img_path = os.path.join(self.directory, self.df.id[distances[i][0]])
-                #         img = resize_with_aspectratio(cv2.imread(img_path, flags = cv2.IMREAD_COLOR), width=800)
-                #         matches = self.bf.match(self.df.descriptors[distances[i][0]], des_t)
-                #         matches = sorted(matches, key = lambda x:x.distance)
-                #         result = cv2.drawMatches(img, self.df.keypoints[distances[i][0]], img_t, kp_t, matches[:20], None)
-
-                #         #cv2.imshow("Query", img_t)
-                #         cv2.namedWindow("Result " + str(i + 1), flags=cv2.WINDOW_NORMAL)
-                #         cv2.imshow("Result " + str(i + 1), result)
-
-
-
-                cv2.namedWindow("Query", flags=cv2.WINDOW_NORMAL)
-                cv2.imshow("Query", img_t)
-
-                for i in range(1):
-                    if(len(current_fvec) > i):
-                        img_path = os.path.join(self.directory, self.df.iloc[current_fvec[i]].id)
-                        img = cv2.imread(img_path, flags = cv2.IMREAD_COLOR)
-                        img = resize_with_aspectratio(img, width=800)
-                        cv2.namedWindow("Resnet " + str(i + 1), flags=cv2.WINDOW_NORMAL)
-                        cv2.imshow("Resnet " + str(i + 1), img)
-                    
-                cv2.waitKey(1)
-
-            return distances
-        elif(mode == 0):
-            img_t = resize_with_aspectratio(img_t, width=800)
-            kp_t, des_t = self.orb.detectAndCompute(img_t,  None)
-
-
-            lowest_distance = 10000000000.0
-
-            if not type(des_t) == np.ndarray:
-                return []
-            
-
-            distances = []
-            # TODO: niet matchen tegen de volledige db maar tegen een subset
-            #for i, desc in enumerate(self.df.iloc[best_fvec_indices]['descriptors']):
-            for i, desc in enumerate(self.df['descriptors']):
-                matches = self.bf.match(desc, des_t)
-                matches = sorted(matches, key = lambda x:x.distance)
-
-                sum = 0
-                if(len(matches) >= 20):
-                    out = []
-                    for m in matches[:20]:
-                        out.append(m.distance)
-            
-                    for m in matches[:20]:
-                        sum += m.distance
-
-                    distances.append((i,sum))
-                    if sum < lowest_distance:
-                        lowest_distance = sum
-
-            distances = sorted(distances,key=lambda t: t[1])
-
-
-            if(display):
-                for i in range(1):
-                    if(len(distances) > i):
-                        img_path = os.path.join(self.directory, self.df.id[distances[i][0]])
-                        img = resize_with_aspectratio(cv2.imread(img_path, flags = cv2.IMREAD_COLOR), width=800)
-                        matches = self.bf.match(self.df.descriptors[distances[i][0]], des_t)
-                        matches = sorted(matches, key = lambda x:x.distance)
-                        result = cv2.drawMatches(img, self.df.keypoints[distances[i][0]], img_t, kp_t, matches[:20], None)
-
-                        #cv2.imshow("Query", img_t)
-                        txt = str(distances[i][1])
-                        cv2.putText(img=result, text=txt, org=(100, 100), fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=8, color=(0, 255, 0), thickness=4)
-                        cv2.namedWindow("Result " + str(i + 1), flags=cv2.WINDOW_NORMAL)
-                        cv2.imshow("Result " + str(i + 1), result)
-                    
-                cv2.waitKey(1)
-
-            return distances
-
-        elif(mode == 1):
-            #img_t = resize_with_aspectratio(img_t, width=224, height=224)
-            current_fvec = []
-            current_fvec = self.neuralnet.cosine_match(img_t, self.df)
-            if(display):
-                cv2.namedWindow("Query", flags=cv2.WINDOW_NORMAL)
-                res = resize_with_aspectratio(img_t, width=400)
-                cv2.imshow("Query", res)
-
-                for i in range(1):
-                    if(len(current_fvec) > i):
-                        img_path = os.path.join(self.directory, self.df.iloc[current_fvec[i][0]].id)
-                        img = cv2.imread(img_path, flags = cv2.IMREAD_COLOR)
-                        img = resize_with_aspectratio(img, width=400)
-                        txt = str(current_fvec[i][1])
-                        cv2.putText(img=img, text=txt, org=(50, 50), fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=1, color=(0, 255, 0), thickness=2)
-                        cv2.namedWindow("Resnet " + str(i + 1), flags=cv2.WINDOW_NORMAL)
-                        cv2.imshow("Resnet " + str(i + 1), img)
-                    
-                cv2.waitKey(1)
-
-            return current_fvec
+        if not type(des_t) == np.ndarray: # Check if any descriptors were returned
+            return []
         
-        return []
 
+        # Distance list has as content (dataframe index, distance score)
+        distances = []
+
+        # Loop through the full DB
+        for i, desc in enumerate(self.df['descriptors']):
+            matches = self.bf.match(desc, des_t) # Retrieve matches for one image in DB
+            matches = sorted(matches, key = lambda x:x.distance) # Sort these matches
+
+            sum = 0
+            if(len(matches) >= 20): # When more than 20 matches were established all distances are added up
+                # Sum of distances (one image 20 best matches)
+                for m in matches[:20]:
+                    sum += m.distance
+
+                # Add image score to the distance list
+                distances.append((i,sum))
+
+        # Sort all DB distance scores
+        distances = sorted(distances,key=lambda t: t[1])
+
+
+        if(display):
+            self.show_orb_match(img_t,des_t,kp_t,distances)
+
+        return distances
+
+
+    def match_fvector(self, img_t, display):
+        # Calculate distances for each image in DB (based on fvector)
+        current_fvec = self.neuralnet.cosine_match(img_t, self.df)
+
+        if(display):
+            self.show_fvector_match(img_t, current_fvec)
+
+        return current_fvec
+    
+    def show_orb_match(self, img_t, des_t, kp_t,  distances, amount=1):
+        for i in range(amount):
+            if(len(distances) > i):
+                img_path = os.path.join(self.directory, self.df.id[distances[i][0]])
+                img = resize_with_aspectratio(cv2.imread(img_path, flags = cv2.IMREAD_COLOR), width=800)
+                matches = self.bf.match(self.df.descriptors[distances[i][0]], des_t)
+                matches = sorted(matches, key = lambda x:x.distance)
+                result = cv2.drawMatches(img, self.df.keypoints[distances[i][0]], img_t, kp_t, matches[:20], None)
+
+                txt = str(distances[i][1])
+                cv2.putText(img=result, text=txt, org=(100, 100), fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=8, color=(0, 255, 0), thickness=4)
+                cv2.namedWindow("Result " + str(i + 1), flags=cv2.WINDOW_NORMAL)
+                cv2.imshow("Result " + str(i + 1), result)
+            
+        cv2.waitKey(1)
+
+    def show_fvector_match(self, img_t, current_fvec, amount=1):
+        cv2.namedWindow("Query", flags=cv2.WINDOW_NORMAL)
+        res = resize_with_aspectratio(img_t, width=400)
+        cv2.imshow("Query", res)
+
+        for i in range(amount):
+            if(len(current_fvec) > i):
+                img_path = os.path.join(self.directory, self.df.iloc[current_fvec[i][0]].id)
+                img = cv2.imread(img_path, flags = cv2.IMREAD_COLOR)
+                img = resize_with_aspectratio(img, width=400)
+                txt = str(current_fvec[i][1])
+                cv2.putText(img=img, text=txt, org=(50, 50), fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=1, color=(0, 255, 0), thickness=2)
+                cv2.namedWindow("Resnet " + str(i + 1), flags=cv2.WINDOW_NORMAL)
+                cv2.imshow("Resnet " + str(i + 1), img)
+            
+        cv2.waitKey(1)
+    
+    def match_combination(self, img_t, display):
+        img_t = resize_with_aspectratio(img_t, width=800)
+        kp_t, des_t = self.orb.detectAndCompute(img_t,  None) # Retrieve keypoints and descriptors
+
+
+        if not type(des_t) == np.ndarray: # Check if any descriptors were returned
+            return []
+        
+        # Calculate distances for each image in DB (based on fvector)
+        current_fvec = self.neuralnet.cosine_match(img_t, self.df) 
+
+        # Distance list has as content (dataframe index, distance score)
+        distances = []
+
+        # Calculate ORB distance only for the first X matches from the fvector matcher
+        for el in current_fvec[0:60]:
+            desc = self.df.iloc[el[0]].descriptors  # Fetch descriptors
+
+            matches = self.bf.match(desc, des_t)
+            matches = sorted(matches, key = lambda x:x.distance)
+
+            sum = 0
+            if(len(matches) >= 20): # When more than 20 matches were established all distances are added up  
+                # Sum of distances (one image 20 best matches)
+                for m in matches[:20]:
+                    sum += m.distance
+
+                # Add image score to the distance list
+                distances.append((el[0],sum))
+
+        # Sort all DB distance scores
+        distances = sorted(distances,key=lambda t: t[1])
+        
+        if(display):
+            self.show_orb_match(img_t,des_t,kp_t,distances)
+            self.show_fvector_match(img_t,current_fvec)
+
+        return distances
 
     def get_filename(self,index):
         return self.df.id[index]
@@ -464,4 +448,4 @@ if __name__ == '__main__':
     # Sample to create keypoint file
     directory_images = os.fsencode(sys.argv[2])   # data/Database
     csv_path = sys.argv[3] # 'src/data/keypoints_2.csv'
-    matcher = PaintingMatcher.generate_keypoints(directory_images,csv_path,100)
+    matcher = PaintingMatcher.generate_keypoints(directory_images,csv_path,100) # 100 features
