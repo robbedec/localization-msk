@@ -1,3 +1,4 @@
+from turtle import distance
 import pandas as pd
 import numpy as np
 import os
@@ -382,12 +383,223 @@ def match_number_of_features(features, df, col_filename, col_distance, col_time,
     return df
 
 
+def benchmark_matcher_vector():
+    print('---------------------------------------------')
+    print('BENCHMARKING PAINTING VECTOR')
+    print('---------------------------------------------')
+
+    df = pd.DataFrame(columns=['filename', 'result_euclidean', 'distance_euclidean', 'second_distance_euclidean','time_euclidean',
+                            'result_cityblock','distance_cityblock','second_distance_cityblock','time_cityblock',
+                            'result_minkowski','distance_minkowski','second_distance_minkowski','time_minkowski',
+                            'result_chebyshev','distance_chebyshev','second_distance_chebyshev','time_chebyshev',
+                            'result_cosine','distance_cosine','second_distance_cosine','time_cosine',
+                            'result_jaccard','distance_jaccard','second_distance_jaccard','time_jaccard'])
+
+
+
+    # Set-up matcher and detector
+    detector = PaintingDetector()
+    matcher = PaintingMatcher(CSV_PATH,IMAGES_PATH,100,mode=1) # Force fvector load :D
+
+    # directory_list = "/home/server/Documents/Github/computervisie-group8/data/Computervisie 2020 Project Database/dataset_pictures_msk"
+    directory_list = "/Users/lennertsteyaert/Documents/GitHub/computervisie-group8/data/Computervisie 2020 Project Database/dataset_pictures_msk"
+
+
+    progress_dic = 0
+    progress = 0
+    printProgressBar(progress_dic, len(os.listdir(directory_list)), prefix = 'Progress matching:', suffix = 'Complete', length = 50)
+
+    # Loop through directory which has subfolders
+    for file in os.listdir(directory_list):
+        directory = os.fsdecode(file)
+        sub_dir_path = directory_list + '/' + directory
+
+        if (os.path.isdir(sub_dir_path)):
+
+            for image_name in os.listdir(sub_dir_path):
+                filename = os.fsdecode(image_name)
+
+                # Load image
+                img_path = sub_dir_path + '/' + filename
+                img = cv2.imread(img_path)
+
+                # Pass image through detector
+                detector.img = img
+                contour_results, img_with_contours = detector.contours(display=False)
+
+
+
+                
+                filename_match_euclidean = []
+                distance_euclidean = []
+                distance_second_euclidean = []
+                timing_euclidean = []
+
+                filename_match_cityblock = []
+                distance_cityblock = []
+                distance_second_cityblock = []
+                timing_cityblock = []
+
+                filename_match_minkowski = []
+                distance_minkowski = []
+                distance_second_minkowski = []
+                timing_minkowski = []
+
+
+                filename_match_chebyshev = []
+                distance_chebyshev = []
+                distance_second_chebyshev = []
+                timing_chebyshev = []
+
+                filename_match_cosine = []
+                distance_cosine = []
+                distance_second_cosine = []
+                timing_cosine = []
+
+                filename_match_jaccard = []
+                distance_jaccard = []
+                distance_second_jaccard = []
+                timing_jaccard = []
+
+                # # Add row when filename is not in dataframe
+                # if(not (filename in df['filename'].unique())):
+                #     df.loc[progress] = [filename, None, None, None, None, None, None, None, None, None, None, None, None,None,None,None,None,None,None,None,None]
+
+                # Loop through all detected boxes
+                for contour in contour_results:
+
+                    matcher.mode = 1
+
+                    # ORB benchmark
+                    affine_image,crop_img = rectify_contour(contour, img, display=False)
+
+
+                    # Euclidean
+
+                    tic = time.perf_counter()
+                    distances = matcher.match(crop_img,dist_metric=0)
+                    toc = time.perf_counter()
+
+                    if len(distances) > 0:
+                        filename_match_euclidean.append(matcher.get_filename(distances[0][0]))
+                        distance_euclidean.append(distances[0][1])
+
+                    if len(distances) > 1:
+                        distance_second_euclidean.append(distances[1][1])
+
+                    timing_euclidean.append(float(toc-tic))
+
+                    # Cityblock
+
+                    tic = time.perf_counter()
+                    distances = matcher.match(crop_img,dist_metric=1)
+                    toc = time.perf_counter()
+
+                    if len(distances) > 0:
+                        filename_match_cityblock.append(matcher.get_filename(distances[0][0]))
+                        distance_cityblock.append(float(distances[0][1]))
+
+                    if len(distances) > 1:
+                        distance_second_cityblock.append(float(distances[1][1]))
+
+                    timing_cityblock.append(float(toc-tic))
+
+                    # Minkowski
+
+                    tic = time.perf_counter()
+                    distances = matcher.match(crop_img,dist_metric=2)
+                    toc = time.perf_counter()
+
+                    if len(distances) > 0:
+                        filename_match_minkowski.append(matcher.get_filename(distances[0][0]))
+                        distance_minkowski.append(distances[0][1])
+
+                    if len(distances) > 1:
+                        distance_second_minkowski.append(distances[1][1])
+
+                    timing_minkowski.append(float(toc-tic))
+
+
+                    # Chebyshev
+
+                    tic = time.perf_counter()
+                    distances = matcher.match(crop_img,dist_metric=3)
+                    toc = time.perf_counter()
+
+                    if len(distances) > 0:
+                        filename_match_chebyshev.append(matcher.get_filename(distances[0][0]))
+                        distance_chebyshev.append(float(distances[0][1]))
+
+                    if len(distances) > 1:
+                        distance_second_chebyshev.append(float(distances[1][1]))
+
+                    timing_chebyshev.append(float(toc-tic))
+
+                    # Cosine
+
+                    tic = time.perf_counter()
+                    distances = matcher.match(crop_img,dist_metric=4)
+                    toc = time.perf_counter()
+
+                    if len(distances) > 0:
+                        filename_match_cosine.append(matcher.get_filename(distances[0][0]))
+                        distance_cosine.append(distances[0][1])
+
+                    if len(distances) > 1:
+                        distance_second_cosine.append(distances[1][1])
+
+                    timing_cosine.append(float(toc-tic))
+
+                    # Jacard
+                    tic = time.perf_counter()
+                    distances = matcher.match(crop_img,dist_metric=5)
+                    toc = time.perf_counter()
+
+                    if len(distances) > 0:
+                        filename_match_jaccard.append(matcher.get_filename(distances[0][0]))
+                        distance_jaccard.append(distances[0][1])
+
+                    if len(distances) > 1:
+                        distance_second_jaccard.append(distances[1][1])
+
+                    timing_jaccard.append(float(toc-tic))
+
+
+                # print(filename_match_cityblock)
+                # print(distance_cityblock)
+                # print(distance_second_cityblock)
+                # print(timing_cityblock)
+
+
+                df.loc[progress] = [filename, json.dumps(filename_match_euclidean), json.dumps(distance_euclidean), json.dumps(distance_second_euclidean), json.dumps(timing_euclidean),
+                                     json.dumps(filename_match_cityblock), json.dumps(distance_cityblock), json.dumps(distance_second_cityblock), json.dumps(timing_cityblock),
+                                     json.dumps(filename_match_minkowski), json.dumps(distance_minkowski), json.dumps(distance_second_minkowski), json.dumps(timing_minkowski),
+                                     json.dumps(filename_match_chebyshev), json.dumps(distance_chebyshev), json.dumps(distance_second_chebyshev), json.dumps(timing_chebyshev),
+                                     json.dumps(filename_match_cosine), json.dumps(distance_cosine), json.dumps(distance_second_cosine), json.dumps(timing_cosine),
+                                     json.dumps(filename_match_jaccard), json.dumps(distance_jaccard), json.dumps(distance_second_jaccard), json.dumps(timing_jaccard)]
+
+                #df.at[indexes[0], col_filename] =  json.dumps(filename_match)
+                # if(progress == 10):
+                #     break
+                progress += 1
+
+            progress_dic += 1    
+            printProgressBar(progress_dic, len(os.listdir(directory_list)), prefix = 'Progress matching:', suffix = 'Complete', length = 50)
+            # break
+
+
+    #df.to_csv(OUT_PATH)  
+    #print(df.head())
+    df.to_csv(OUT_PATH)  
+
 # SETUP:
 if what == 'all':
     benchmark_detector()
     benchmark_matcher()
 elif what == 'matcher':
     benchmark_matcher()
+elif what == 'matcherfv':
+    benchmark_matcher_vector()
 elif what == 'detector':
     benchmark_detector()
 else:
