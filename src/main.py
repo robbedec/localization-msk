@@ -117,8 +117,6 @@ def main():
     while True:
         success, img = cap.read()
 
-        print(CURRENT_ROOM, DIFF_ROOM_COUNTER, visited_rooms)
-
         if not success:
             break
 
