@@ -14,7 +14,7 @@ import scipy
 import time
 
 from PIL import Image
-from torch.autograd import Variable as V
+#from torch.autograd import Variable as V
 
 from util import resize_with_aspectratio
 from util import printProgressBar
