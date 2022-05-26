@@ -1,6 +1,3 @@
-from operator import mod
-from pyexpat import features
-from turtle import mode
 import cv2
 import numpy as np
 import pandas as pd
@@ -26,7 +23,7 @@ from scipy.spatial import distance
 from keras.preprocessing import image
 
 
-LENNERT = True
+LENNERT = False
 
 class Mode(Enum):
     ORB = 0

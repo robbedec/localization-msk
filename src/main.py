@@ -16,6 +16,7 @@ from enum import Enum
 
 DIFF_ROOM_COUNTER = 0
 CURRENT_ROOM = 'Z'
+NEW_ROOM = 'Y'
 
 def create_map(room_pred, plan, file_path, visited_rooms):
     # TODO: remove after room_pred are normalized.
@@ -47,28 +48,31 @@ def create_map(room_pred, plan, file_path, visited_rooms):
     for i, text in enumerate(pred_text):
         cv2.putText(img=blended_im, text=text, org=(50, plan.shape[0] - 100 + (i * 35)), fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=2, color=(0, 255, 0), thickness=2)
 
-    # global CURRENT_ROOM, DIFF_ROOM_COUNTER
-    # kamer = vertices[probs_indices_sorted[0]]
+    global CURRENT_ROOM, DIFF_ROOM_COUNTER, NEW_ROOM
+    kamer = vertices[probs_indices_sorted[0]]
     
-    # # TODO: Dit kijkt als er 10x iets anders dan de huidige kamer voorspeld is.
-    # # Als je 9x dezelfde voorspelling krijgt en dan voor de 10e een andere dan
-    # # wordt de nieuwe kamer die dat slechts 1 keer gedetecteerd werd?
-    # #
-    # # Misschien beter om een frequentielijst bij te houden en pas de kamer te wisselen
-    # # als dezelfde kamer 10x de hoogste probabiliteit heeft.
-    # if CURRENT_ROOM != kamer:
-    #     DIFF_ROOM_COUNTER += 1
-    #     if DIFF_ROOM_COUNTER > 10:
-    #         CURRENT_ROOM = kamer
-    #         DIFF_ROOM_COUNTER = 0
+    # TODO: Dit kijkt als er 10x iets anders dan de huidige kamer voorspeld is.
+    # Als je 9x dezelfde voorspelling krijgt en dan voor de 10e een andere dan
+    # wordt de nieuwe kamer die dat slechts 1 keer gedetecteerd werd?
+    #
+    # Misschien beter om een frequentielijst bij te houden en pas de kamer te wisselen
+    # als dezelfde kamer 10x de hoogste probabiliteit heeft.
+    if CURRENT_ROOM != kamer:
+        if NEW_ROOM != kamer:
+            NEW_ROOM = kamer
+            DIFF_ROOM_COUNTER = 0
+        else:
+            DIFF_ROOM_COUNTER += 1
+            if DIFF_ROOM_COUNTER > 5:
+                CURRENT_ROOM = kamer
+                DIFF_ROOM_COUNTER = 0
+                visited_rooms.append(room_center_coords[kamer])
 
-    #         visited_rooms.append(room_center_coords[kamer])
+    for i in range(len(visited_rooms) - 2):
+        cv2.line(blended_im, visited_rooms[i], visited_rooms[i+1], (255,0,0), 2, cv2.LINE_AA)
 
-    # for i in range(len(visited_rooms) - 2):
-    #     cv2.line(blended_im, visited_rooms[i], visited_rooms[i+1], (255,0,0), 2, cv2.LINE_AA)
-
-    # if(len(visited_rooms) > 1):
-    #     cv2.arrowedLine(blended_im, visited_rooms[len(visited_rooms) - 2], visited_rooms[len(visited_rooms)- 1], (255,0,0), 2, cv2.LINE_AA)
+    if(len(visited_rooms) > 1):
+        cv2.arrowedLine(blended_im, visited_rooms[len(visited_rooms) - 2], visited_rooms[len(visited_rooms)- 1], (255,0,0), 2, cv2.LINE_AA)
 
     cv2.imshow('HMM Visualization', blended_im)
 
