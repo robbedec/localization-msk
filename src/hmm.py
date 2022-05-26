@@ -13,7 +13,7 @@ class HMM():
         self.normalized_prob_arr = self.stat_distr.copy()
     
     @staticmethod
-    def build(connectivityMatrix, distribution='gaussian', mu=0, sigma=1, max_dist=11):
+    def build(connectivityMatrix, distribution='gaussian', mu=0, sigma=0.8, max_dist=11):
         dm = createDistanceMatrix(connectivityMatrix)
         if distribution == 'linear':
             matrix = createLinearDistributionMatrix(dm)
@@ -63,7 +63,7 @@ class HMM():
         global_max = (0, None)
         total_sum = 0
         for i, p in enumerate(room_prob):
-            ## Hacky fix atm
+            ## Previous prediction has min probability of 2%
             if (i == self.prev_best) & (p == 0):
                 p = 0.02
             new_room_prob = 0

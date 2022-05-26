@@ -90,7 +90,7 @@ class Localiser():
 
             matrix_index = self.graph.getVertices().index(room_name)
             if room_dist_list[matrix_index] == 0:
-                room_dist_list[matrix_index] = m[1]
+                room_dist_list[matrix_index] = m[1]+1
                 room_count +=1
             idx+=1
         return room_dist_list
