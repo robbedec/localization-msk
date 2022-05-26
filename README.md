@@ -102,6 +102,10 @@ function local() {
 # Sample usage using a Taskfile (Lennert macOS Monterey, relative paths)
 
 ```bash
+#!/bin/bash
+
+# Usage: ./Taskfile <function_name>
+
 function start {
     # Runs the main.py file with a selected video
     calib_file='src/data/gopro-M.npy'
@@ -139,7 +143,7 @@ function benchmark {
         --display ${display}
 }
 
-function benchmarkmatching {
+function benchmarkmatchingkeypoints {
     display='y'
     if ! [ $# -eq 0 ]; then
         display="$1"
@@ -148,10 +152,25 @@ function benchmarkmatching {
     python3 src/benchmark.py \
         --csv 'src/data/keypoints.csv' \
         --basefolder 'data/Database' \
-        --what 'matcher' \
-        --out 'src/data/matchingscores.csv' \
+        --what 'matcherkeypoints' \
+        --out 'src/data/matchingscores_keypoints.csv' \
         --display ${display}
 }
+
+function benchmarkmatchingfvector {
+    display='y'
+    if ! [ $# -eq 0 ]; then
+        display="$1"
+    fi
+
+    python3 src/benchmark.py \
+        --csv 'src/data/keypoints.csv' \
+        --basefolder 'data/Database' \
+        --what 'matcherfvector' \
+        --out 'src/data/matchingscores_fvector.csv' \
+        --display ${display}
+}
+
 
 function generatekeypoints {
 
@@ -161,5 +180,8 @@ function generatekeypoints {
 
     python src/matcher.py "${path_test_image}" ${directory_database} ${csv_path}
 }
+
+
+"$@"
 
 ```
