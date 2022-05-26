@@ -6,12 +6,9 @@ import numpy as np
 import pandas as pd
 import sys
 import os
-
+from enum import Enum
 
 import json
-# import torch
-# import torchvision.models as models
-# import torchvision.transforms as transforms
 import scipy
 import time
 
@@ -31,44 +28,22 @@ from keras.preprocessing import image
 
 LENNERT = True
 
-# class CustomResNet():
-#     def __init__(self):
-#         self.model = models.resnet18()
-#         self.model.eval()
-    
-#     def get_feature_vector(self, img_path):
-#         # https://towardsdatascience.com/recommending-similar-images-using-pytorch-da019282770c
+class Mode(Enum):
+    ORB = 0
+    FVECTOR = 1
+    FVECTOR_EUCLIDEAN = 2
+    FVECTOR_CITYBLOCK = 3
+    COMBINATION_EUCLIDEAN = 4
+    COMBINATION_CITYBLOCK = 5
 
-#         feature_layer = self.model.avgpool
-#         feature_vector = torch.zeros(1, 512, 1, 1)
+class Distance(Enum):
+    EUCLIDEAN = 0
+    CITYBLOCK = 1
+    MINOWSKI = 2
+    CHEBYSHEV = 3
+    COSINE = 4
+    JACCARD = 5
 
-#         # Define image manipulations and process image using standard ResNet parameters.
-#         img = Image.open(img_path) if isinstance(img_path, str) else Image.fromarray(img_path)
-#         centre_crop = transforms.Compose([
-#             # #transforms.Resize((224,224)),
-#             # transforms.CenterCrop(224),
-#             # #transforms.RandomResizedCrop(224),
-#             # transforms.ToTensor(),
-#             # transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-
-#             transforms.Resize(224),
-#             #transforms.CenterCrop(224),
-#             transforms.ToTensor(),
-#             transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-#         ])
-#         processed_img = V(centre_crop(img).unsqueeze(0))
-        
-#         # Register hook in the forward pass that copies the feature vector out
-#         # of the Neural Net.
-#         def copy_hook(m, i, o):
-#             feature_vector.copy_(o.data)
-#         h = feature_layer.register_forward_hook(copy_hook)
-
-#         # Apply forward pass
-#         fp = self.model.forward(processed_img) 
-        
-#         h.remove()
-#         return feature_vector.numpy()[0, :, 0, 0]
 
 class CustomResNet():
     def __init__(self):
@@ -84,94 +59,36 @@ class CustomResNet():
         return feat
 
     def euclidean_match(self,img,df):
-        img_array = self.preprocess_convert(img)
-        vectors = self.model.predict(img_array)[0]
-
-        distances = []
-        similar_idx_cosine = [ distance.euclidean(vectors, feat) for feat in df["fvector"]]
-        idx_closest = sorted(range(len(similar_idx_cosine)), key=lambda k: similar_idx_cosine[k])
-
-        # for i in idx_closest:
-        #     print(i)
-        for i in idx_closest:
-            distances.append((i,similar_idx_cosine[i]))
-
-        return distances
+        return self.match(img,df,dist_method=distance.euclidean)
 
     def cityblock_match(self,img,df):
-        img_array = self.preprocess_convert(img)
-        vectors = self.model.predict(img_array)[0]
-
-        distances = []
-        similar_idx_cosine = [ distance.cityblock(vectors, feat) for feat in df["fvector"]]
-        idx_closest = sorted(range(len(similar_idx_cosine)), key=lambda k: similar_idx_cosine[k])
-
-        # for i in idx_closest:
-        #     print(i)
-        for i in idx_closest:
-            distances.append((i,similar_idx_cosine[i]))
-
-        return distances
+        return self.match(img,df,dist_method=distance.cityblock)
 
     def minowski_match(self,img,df):
-        img_array = self.preprocess_convert(img)
-        vectors = self.model.predict(img_array)[0]
-
-        distances = []
-        similar_idx_cosine = [ distance.minkowski(vectors, feat) for feat in df["fvector"]]
-        idx_closest = sorted(range(len(similar_idx_cosine)), key=lambda k: similar_idx_cosine[k])
-
-        # for i in idx_closest:
-        #     print(i)
-        for i in idx_closest:
-            distances.append((i,similar_idx_cosine[i]))
-
-        return distances
+        return self.match(img,df,dist_method=distance.minkowski)
 
     def chebyshev_match(self,img,df):
-        img_array = self.preprocess_convert(img)
-        vectors = self.model.predict(img_array)[0]
-
-        distances = []
-        similar_idx_cosine = [ distance.chebyshev(vectors, feat) for feat in df["fvector"]]
-        idx_closest = sorted(range(len(similar_idx_cosine)), key=lambda k: similar_idx_cosine[k])
-
-        # for i in idx_closest:
-        #     print(i)
-        for i in idx_closest:
-            distances.append((i,similar_idx_cosine[i]))
-
-        return distances
+        return self.match(img,df,dist_method=distance.chebyshev)
 
     def cosine_match(self,img,df):
-        img_array = self.preprocess_convert(img)
-        vectors = self.model.predict(img_array)[0]
-
-        distances = []
-        similar_idx_cosine = [ distance.cosine(vectors, feat) for feat in df["fvector"]]
-        idx_closest = sorted(range(len(similar_idx_cosine)), key=lambda k: similar_idx_cosine[k])
-
-        # for i in idx_closest:
-        #     print(i)
-        for i in idx_closest:
-            distances.append((i,similar_idx_cosine[i]))
-
-        return distances
+        return self.match(img,df,dist_method=distance.cosine)
 
     def jaccard_match(self,img,df):
+        return self.match(img,df,dist_method=distance.jaccard)
+    
+    def match(self,img,df,dist_method):
         img_array = self.preprocess_convert(img)
         vectors = self.model.predict(img_array)[0]
 
+
         distances = []
-        similar_idx_cosine = [ distance.jaccard(vectors, feat) for feat in df["fvector"]]
+        similar_idx_cosine = [ dist_method(vectors, feat) for feat in df["fvector"]]
         idx_closest = sorted(range(len(similar_idx_cosine)), key=lambda k: similar_idx_cosine[k])
 
-        # for i in idx_closest:
-        #     print(i)
         for i in idx_closest:
             distances.append((i,similar_idx_cosine[i]))
 
-        return distances
+        return distances        
 
     def load_image(self, path):
         global LENNERT
@@ -205,7 +122,7 @@ class CustomResNet():
             return x        
 
 class PaintingMatcher():
-    def __init__(self, path=None, directory=None, features=300, mode = 0):
+    def __init__(self, path=None, directory=None, features=300, mode = Mode.ORB):
         self.directory = directory
         self._mode =  mode
 
@@ -348,17 +265,24 @@ class PaintingMatcher():
         self.df['descriptors'] = self.df['descriptors'].apply(lambda x: PaintingMatcher.convert_descriptors(x))
         self.df['keypoints'] = self.df['keypoints'].apply(lambda x: PaintingMatcher.convert_keypoints(x))
         
-        if self._mode != 0:
+        if self._mode.value != Mode.ORB.value:
             self.df['fvector'] = self.df['fvector'].apply(lambda x: PaintingMatcher.convert_fvector(x))
 
-    def match(self,img_t, display=False, dist_metric=4):
+    def match(self,img_t, display=False, dist_metric=Distance.EUCLIDEAN):
         distances = []
-        if(self._mode == 0):
+
+        if(self._mode.value == Mode.ORB.value):
             distances = self.match_mode_orb(img_t,display)
-        elif(self._mode == 1):
+        elif(self._mode.value == Mode.FVECTOR.value):
             distances = self.match_fvector(img_t,display,dist_metric)
-        else:
-            distances = self.match_combination(img_t,display)
+        elif(self._mode.value == Mode.FVECTOR_EUCLIDEAN.value):
+            distances = self.match_fvector(img_t,display,Distance.EUCLIDEAN)
+        elif(self._mode.value == Mode.FVECTOR_CITYBLOCK.value):
+            distances = self.match_fvector(img_t,display,Distance.CITYBLOCK)
+        elif(self._mode.value == Mode.COMBINATION_EUCLIDEAN.value):
+            distances = self.match_combination(img_t,display,Distance.EUCLIDEAN)
+        elif(self._mode.value == Mode.COMBINATION_CITYBLOCK.value):
+            distances = self.match_combination(img_t,display,Distance.CITYBLOCK)
 
         return distances
 
@@ -402,15 +326,15 @@ class PaintingMatcher():
     def match_fvector(self, img_t, display, dist_metric):
         # Calculate distances for each image in DB (based on fvector)
         current_fvec = []
-        if dist_metric == 4:
+        if dist_metric.value == Distance.COSINE.value:
             current_fvec = self.neuralnet.cosine_match(img_t, self.df)
-        elif dist_metric == 0:
+        elif dist_metric.value == Distance.EUCLIDEAN.value:
             current_fvec = self.neuralnet.euclidean_match(img_t, self.df)     
-        elif dist_metric == 1:
+        elif dist_metric.value == Distance.CITYBLOCK.value:
             current_fvec = self.neuralnet.cityblock_match(img_t, self.df)        
-        elif dist_metric == 2:
+        elif dist_metric.value == Distance.MINOWSKI.value:
             current_fvec = self.neuralnet.minowski_match(img_t, self.df)
-        elif dist_metric == 3:
+        elif dist_metric.value == Distance.CHEBYSHEV.value:
             current_fvec = self.neuralnet.chebyshev_match(img_t, self.df)
         else:
             current_fvec = self.neuralnet.jaccard_match(img_t, self.df)                   
@@ -420,7 +344,7 @@ class PaintingMatcher():
 
         return current_fvec
     
-    def show_orb_match(self, img_t, des_t, kp_t,  distances, amount=1):
+    def show_orb_match(self, img_t, des_t, kp_t, distances, amount=1):
         for i in range(amount):
             if(len(distances) > i):
                 img_path = os.path.join(self.directory, self.df.id[distances[i][0]])
@@ -453,7 +377,7 @@ class PaintingMatcher():
             
         cv2.waitKey(1)
     
-    def match_combination(self, img_t, display):
+    def match_combination(self, img_t, display, dist_metric):
         img_t = resize_with_aspectratio(img_t, width=800)
         kp_t, des_t = self.orb.detectAndCompute(img_t,  None) # Retrieve keypoints and descriptors
 
@@ -462,7 +386,10 @@ class PaintingMatcher():
             return []
         
         # Calculate distances for each image in DB (based on fvector)
-        current_fvec = self.neuralnet.cosine_match(img_t, self.df) 
+        if(dist_metric.value == Distance.EUCLIDEAN.value):
+            current_fvec = self.neuralnet.euclidean_match(img_t, self.df) 
+        else:
+            current_fvec = self.neuralnet.cityblock_match(img_t, self.df)
 
         # Distance list has as content (dataframe index, distance score)
         distances = []

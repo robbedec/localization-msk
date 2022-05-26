@@ -12,6 +12,8 @@ import json
 
 from detector import PaintingDetector
 from matcher import PaintingMatcher
+from matcher import Distance
+from matcher import Mode
 from util import printProgressBar, rectify_contour
 
 """
@@ -217,9 +219,9 @@ def benchmark_detector():
 
     plt.savefig(os.path.join(os.path.dirname(os.path.dirname(OUT_PATH)), 'benchmark_images', 'grouped_by_hall.jpg'))
 
-def benchmark_matcher():
+def benchmark_matcher_keypoints():
     print('---------------------------------------------')
-    print('BENCHMARKING PAINTING MATCHER')
+    print('BENCHMARKING PAINTING KEYPOINTS')
     print('---------------------------------------------')
 
     df = pd.DataFrame(columns=['filename', 'result_50_features', 'distance_50_features', 
@@ -268,11 +270,9 @@ def match_number_of_features(features, df, col_filename, col_distance, col_time,
 
     # Set-up matcher and detector
     detector = PaintingDetector()
-    matcher = PaintingMatcher(CSV_PATH,IMAGES_PATH,features,mode=1) # Force fvector load :D
+    matcher = PaintingMatcher(CSV_PATH,IMAGES_PATH,features,mode=Mode.FVECTOR_EUCLIDEAN) # Force fvector load :D
 
-    # directory_list = "/home/server/Documents/Github/computervisie-group8/data/Computervisie 2020 Project Database/dataset_pictures_msk"
     directory_list = "/Users/lennertsteyaert/Documents/GitHub/computervisie-group8/data/Computervisie 2020 Project Database/dataset_pictures_msk"
-
 
     progress_dic = 0
     progress = 0
@@ -319,7 +319,7 @@ def match_number_of_features(features, df, col_filename, col_distance, col_time,
                 # Loop through all detected boxes
                 for contour in contour_results:
 
-                    matcher.mode = 0 # Activate ORB matcher
+                    matcher.mode = Mode.ORB # Activate ORB matcher
 
                     # ORB benchmark
                     affine_image,crop_img = rectify_contour(contour, img, display=False)
@@ -341,7 +341,7 @@ def match_number_of_features(features, df, col_filename, col_distance, col_time,
 
                     if(overwrite == True):
                         
-                        matcher.mode = 1 # Activate fvector matcher
+                        matcher.mode = Mode.FVECTOR_EUCLIDEAN # Activate fvector matcher
 
                         # Fvector  benchmark
                         tic = time.perf_counter()
@@ -399,9 +399,9 @@ def benchmark_matcher_vector():
 
     # Set-up matcher and detector
     detector = PaintingDetector()
-    matcher = PaintingMatcher(CSV_PATH,IMAGES_PATH,100,mode=1) # Force fvector load :D
+    matcher = PaintingMatcher(CSV_PATH,IMAGES_PATH,100,mode=Mode.FVECTOR) # Force fvector load :D
+  
 
-    # directory_list = "/home/server/Documents/Github/computervisie-group8/data/Computervisie 2020 Project Database/dataset_pictures_msk"
     directory_list = "/Users/lennertsteyaert/Documents/GitHub/computervisie-group8/data/Computervisie 2020 Project Database/dataset_pictures_msk"
 
 
@@ -426,8 +426,6 @@ def benchmark_matcher_vector():
                 # Pass image through detector
                 detector.img = img
                 contour_results, img_with_contours = detector.contours(display=False)
-
-
 
                 
                 filename_match_euclidean = []
@@ -461,23 +459,17 @@ def benchmark_matcher_vector():
                 distance_second_jaccard = []
                 timing_jaccard = []
 
-                # # Add row when filename is not in dataframe
-                # if(not (filename in df['filename'].unique())):
-                #     df.loc[progress] = [filename, None, None, None, None, None, None, None, None, None, None, None, None,None,None,None,None,None,None,None,None]
-
                 # Loop through all detected boxes
                 for contour in contour_results:
 
-                    matcher.mode = 1
-
-                    # ORB benchmark
+                    # Rectify
                     affine_image,crop_img = rectify_contour(contour, img, display=False)
 
 
                     # Euclidean
 
                     tic = time.perf_counter()
-                    distances = matcher.match(crop_img,dist_metric=0)
+                    distances = matcher.match(crop_img,dist_metric=Distance.EUCLIDEAN)
                     toc = time.perf_counter()
 
                     if len(distances) > 0:
@@ -492,7 +484,7 @@ def benchmark_matcher_vector():
                     # Cityblock
 
                     tic = time.perf_counter()
-                    distances = matcher.match(crop_img,dist_metric=1)
+                    distances = matcher.match(crop_img,dist_metric=Distance.CITYBLOCK)
                     toc = time.perf_counter()
 
                     if len(distances) > 0:
@@ -507,7 +499,7 @@ def benchmark_matcher_vector():
                     # Minkowski
 
                     tic = time.perf_counter()
-                    distances = matcher.match(crop_img,dist_metric=2)
+                    distances = matcher.match(crop_img,dist_metric=Distance.MINOWSKI)
                     toc = time.perf_counter()
 
                     if len(distances) > 0:
@@ -523,7 +515,7 @@ def benchmark_matcher_vector():
                     # Chebyshev
 
                     tic = time.perf_counter()
-                    distances = matcher.match(crop_img,dist_metric=3)
+                    distances = matcher.match(crop_img,dist_metric=Distance.CHEBYSHEV)
                     toc = time.perf_counter()
 
                     if len(distances) > 0:
@@ -538,7 +530,7 @@ def benchmark_matcher_vector():
                     # Cosine
 
                     tic = time.perf_counter()
-                    distances = matcher.match(crop_img,dist_metric=4)
+                    distances = matcher.match(crop_img,dist_metric=Distance.COSINE)
                     toc = time.perf_counter()
 
                     if len(distances) > 0:
@@ -552,7 +544,7 @@ def benchmark_matcher_vector():
 
                     # Jacard
                     tic = time.perf_counter()
-                    distances = matcher.match(crop_img,dist_metric=5)
+                    distances = matcher.match(crop_img,dist_metric=Distance.JACCARD)
                     toc = time.perf_counter()
 
                     if len(distances) > 0:
@@ -565,11 +557,6 @@ def benchmark_matcher_vector():
                     timing_jaccard.append(float(toc-tic))
 
 
-                # print(filename_match_cityblock)
-                # print(distance_cityblock)
-                # print(distance_second_cityblock)
-                # print(timing_cityblock)
-
 
                 df.loc[progress] = [filename, json.dumps(filename_match_euclidean), json.dumps(distance_euclidean), json.dumps(distance_second_euclidean), json.dumps(timing_euclidean),
                                      json.dumps(filename_match_cityblock), json.dumps(distance_cityblock), json.dumps(distance_second_cityblock), json.dumps(timing_cityblock),
@@ -578,27 +565,22 @@ def benchmark_matcher_vector():
                                      json.dumps(filename_match_cosine), json.dumps(distance_cosine), json.dumps(distance_second_cosine), json.dumps(timing_cosine),
                                      json.dumps(filename_match_jaccard), json.dumps(distance_jaccard), json.dumps(distance_second_jaccard), json.dumps(timing_jaccard)]
 
-                #df.at[indexes[0], col_filename] =  json.dumps(filename_match)
-                # if(progress == 10):
-                #     break
                 progress += 1
 
             progress_dic += 1    
             printProgressBar(progress_dic, len(os.listdir(directory_list)), prefix = 'Progress matching:', suffix = 'Complete', length = 50)
-            # break
 
 
-    #df.to_csv(OUT_PATH)  
-    #print(df.head())
     df.to_csv(OUT_PATH)  
 
 # SETUP:
 if what == 'all':
     benchmark_detector()
-    benchmark_matcher()
-elif what == 'matcher':
-    benchmark_matcher()
-elif what == 'matcherfv':
+    benchmark_matcher_keypoints()
+    benchmark_matcher_vector()
+elif what == 'matcherkeypoints':
+    benchmark_matcher_keypoints()
+elif what == 'matcherfvector':
     benchmark_matcher_vector()
 elif what == 'detector':
     benchmark_detector()

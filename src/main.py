@@ -7,14 +7,12 @@ import pandas as pd
 from util import resize_with_aspectratio, vertices
 from detector import PaintingDetector
 from matcher import PaintingMatcher
+from matcher import Mode
 from localiser import Localiser
 from preprocessing import FrameProcessor
-from enum import Enum
 
-class Mode(Enum):
-    ORB = 0
-    FVECTOR = 1
-    COMBINATION = 2
+
+
 
 def create_map(room_pred, plan, file_path):
     # TODO: remove after room_pred are normalized.
@@ -73,9 +71,11 @@ def main():
 
 
     # Matching mode
-    #mode = Mode.ORB.value
-    #mode = Mode.FVECTOR.value
-    mode = Mode.COMBINATION.value
+    mode = Mode.ORB
+    #mode = Mode.FVECTOR_EUCLIDEAN
+    #mode = Mode.FVECTOR_CITYBLOCK
+    #mode = Mode.COMBINATION_EUCLIDEAN
+    #mode = Mode.COMBINATION_CITYBLOCK
 
     # Video setup and properties
     cap = cv2.VideoCapture(video_path)
