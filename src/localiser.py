@@ -51,7 +51,7 @@ class Localiser():
         # Calculate the chance that the frame is located in a room (for every room)
         room_odds = self.calculateRoomOdds(dist_list)
 
-        room_pred = self.hmm.getOptimalPrediction(room_odds, viterbi=True)
+        room_pred = self.hmm.getOptimalPrediction(room_odds, forward=True)
         if room_pred is None or room_pred[1] is None:
             # Geen idee waarom dit gebeurt.
             return self.previous

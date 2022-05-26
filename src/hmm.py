@@ -21,13 +21,13 @@ class HMM():
             matrix = createGaussianDistributionMatrix(dm, mu, sigma, max_dist)
         return HMM(matrix)
     
-    def getOptimalPrediction(self, frame_room_prob, viterbi=True):
+    def getOptimalPrediction(self, frame_room_prob, forward=True):
         ## Return False if list isn't same size
         if len(frame_room_prob) != len(self.hidden_layers):
             return False
         
-        if viterbi:        
-            best_pred = self.__viterbi(frame_room_prob)
+        if forward:        
+            best_pred = self.__forward(frame_room_prob)
         else:
             best_pred = self.__predictWithoutSequence(frame_room_prob)
         return best_pred
@@ -58,22 +58,22 @@ class HMM():
         self.prev_X = best_pred[1]
         return best_pred
 
-    def __viterbi(self, room_prob):
+    ## Forward algorithm    
+    def __forward(self, room_prob):
         global_max = (0, None)
         total_sum = 0
         for i, p in enumerate(room_prob):
             ## Hacky fix atm
             if (i == self.prev_best) & (p == 0):
                 p = 0.02
-            local_max = (0, None)
+            new_room_prob = 0
             for j, prev_prob in enumerate(self.prob_arr):
                 next_p = prev_prob * self.hidden_layers[j][i] * p
-                if next_p > local_max[0]:
-                    local_max = (next_p, i)
-            self.prob_arr[i] = local_max[0]
-            total_sum += local_max[0]
-            if local_max[0] > global_max[0]:
-                global_max = local_max
+                new_room_prob += next_p
+            self.prob_arr[i] = new_room_prob
+            total_sum += new_room_prob
+            if new_room_prob > global_max[0]:
+                global_max = (new_room_prob, i)
         self.normalize_array(self.prob_arr, total_sum)
         self.prev_best = global_max[1]
         return global_max
@@ -124,10 +124,11 @@ def createGaussianDistributionMatrix(distanceMatrix, mu=0, sigma=1, max_dist=15)
     gauss_distr = getGaussianDistribution(mu, sigma, max_dist)
     wm = [row.copy() for row in distanceMatrix]
     for row in wm:
-        dist_max = max(row)
+        #dist_max = max(row)
         sum = 0
         for i, dist in enumerate(row):
-            new_val = (dist_max - dist + 1) * gauss_distr[int(dist)]
+            new_val = gauss_distr[int(dist)]
+            # new_val = (dist_max - dist + 1) * gauss_distr[int(dist)]
             row[i] = new_val
             sum += new_val
         row /= sum
