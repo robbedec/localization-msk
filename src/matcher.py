@@ -23,8 +23,6 @@ from scipy.spatial import distance
 from keras.preprocessing import image
 
 
-LENNERT = False
-
 class Mode(Enum):
     ORB = 0
     FVECTOR = 1
@@ -43,9 +41,10 @@ class Distance(Enum):
 
 
 class CustomResNet():
-    def __init__(self):
+    def __init__(self, MAC=False):
         self.pretrained_model = VGG16(weights='imagenet', include_top=True)
         self.model = Model(inputs=self.pretrained_model.input, outputs=self.pretrained_model.get_layer("fc2").output)
+        self.MAC = MAC
     
     def get_feature_vector(self, img_path):
         # Reference
@@ -74,7 +73,7 @@ class CustomResNet():
         return self.match(img,df,dist_method=distance.jaccard)
     
     def match(self,img,df,dist_method):
-        img_array = self.preprocess_convert(img)
+        img_array = self.preprocess_convert(img,self.MAC)
         vectors = self.model.predict(img_array)[0]
 
 
@@ -88,8 +87,7 @@ class CustomResNet():
         return distances        
 
     def load_image(self, path):
-        global LENNERT
-        if LENNERT:
+        if self.MAC:
             img = tf.keras.preprocessing.image.load_img(path, target_size=self.model.input_shape[1:3])
             x = tf.keras.preprocessing.image.img_to_array(img)
             x = np.expand_dims(x, axis=0)
@@ -104,8 +102,8 @@ class CustomResNet():
 
             return img, x
 
-    def preprocess_convert(self, img):
-        if LENNERT:
+    def preprocess_convert(self, img, MAC):
+        if MAC:
             res = tf.image.resize(img, self.model.input_shape[1:3])
             x = tf.keras.preprocessing.image.img_to_array(res)
             x = np.expand_dims(x, axis=0)
@@ -119,18 +117,22 @@ class CustomResNet():
             return x        
 
 class PaintingMatcher():
-    def __init__(self, path=None, directory=None, features=300, mode = Mode.ORB):
+    def __init__(self, path=None, directory=None, features=300, mode = Mode.ORB, MAC=False):
         self.directory = directory
         self._mode =  mode
+        self.MAC = MAC
 
         if path is not None:
             self.load_keypoints(path)
             self.orb = cv2.ORB_create(nfeatures=features)
+
+            # Distance matcher?
+            # https://docs.opencv.org/4.x/d3/da1/classcv_1_1BFMatcher.html
             self.bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
         else:
             raise ValueError('Path is None.')
 
-        self.neuralnet = CustomResNet()    
+        self.neuralnet = CustomResNet(self.MAC)    
     
 
     @property
@@ -221,11 +223,11 @@ class PaintingMatcher():
         return descriptors
 
     @staticmethod
-    def convert_keypoints(keypoint_array):
+    def convert_keypoints(keypoint_array, MAC):
         keypoints_result = []
         keypoint_array  =  np.array(pd.read_json(keypoint_array), dtype=object)
 
-        if LENNERT:
+        if MAC:
             for  p in keypoint_array:
                 temp = cv2.KeyPoint(
                     x=p[0][0],
@@ -260,7 +262,7 @@ class PaintingMatcher():
 
         self.df = pd.read_csv(data_path, ",")
         self.df['descriptors'] = self.df['descriptors'].apply(lambda x: PaintingMatcher.convert_descriptors(x))
-        self.df['keypoints'] = self.df['keypoints'].apply(lambda x: PaintingMatcher.convert_keypoints(x))
+        self.df['keypoints'] = self.df['keypoints'].apply(lambda x: PaintingMatcher.convert_keypoints(x,self.MAC))
         
         if self._mode.value != Mode.ORB.value:
             self.df['fvector'] = self.df['fvector'].apply(lambda x: PaintingMatcher.convert_fvector(x))

@@ -18,6 +18,7 @@ DIFF_ROOM_COUNTER = 0
 CURRENT_ROOM = 'Z'
 NEW_ROOM = 'Y'
 
+
 def create_map(room_pred, plan, file_path, visited_rooms):
     # TODO: remove after room_pred are normalized.
     # Random percentages
@@ -91,11 +92,14 @@ def main():
 
     is_gopro = False
 
+    MAC = False
+    FEATURES = 100
+
     # Matching mode
-    mode = Mode.ORB
+    #mode = Mode.ORB
     #mode = Mode.FVECTOR_EUCLIDEAN
     #mode = Mode.FVECTOR_CITYBLOCK
-    #mode = Mode.COMBINATION_EUCLIDEAN
+    mode = Mode.COMBINATION_EUCLIDEAN
     #mode = Mode.COMBINATION_CITYBLOCK
 
     # Video setup and properties
@@ -108,7 +112,7 @@ def main():
     # Create pipeline instances
     preproc = FrameProcessor(calibration_file, (width, height))
     detector = PaintingDetector()
-    matcher = PaintingMatcher(csv_path, database_file,features=100,mode=mode)
+    matcher = PaintingMatcher(csv_path, database_file, features=FEATURES, mode=mode, MAC=MAC)
     localiser = Localiser(matcher=matcher, hmm_distribution='gaussian')
 
     # For map visualization
