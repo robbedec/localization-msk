@@ -13,7 +13,7 @@ class HMM():
         self.normalized_prob_arr = self.stat_distr.copy()
     
     @staticmethod
-    def build(connectivityMatrix, distribution='gaussian', mu=0, sigma=0.8, max_dist=11):
+    def build(connectivityMatrix, distribution='gaussian', mu=0, sigma=1, max_dist=11):
         dm = createDistanceMatrix(connectivityMatrix)
         if distribution == 'linear':
             matrix = createLinearDistributionMatrix(dm)
@@ -128,7 +128,6 @@ def createGaussianDistributionMatrix(distanceMatrix, mu=0, sigma=1, max_dist=15)
         sum = 0
         for i, dist in enumerate(row):
             new_val = gauss_distr[int(dist)]
-            # new_val = (dist_max - dist + 1) * gauss_distr[int(dist)]
             row[i] = new_val
             sum += new_val
         row /= sum
