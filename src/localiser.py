@@ -84,10 +84,6 @@ class Localiser():
             m = soft_matches[idx]
             room = self.matcher.get_room(m[0])
             room_name = room.split("_")[1]
-            if(room_name == "V"):   ## Staat niet op grondplan? -> vragen
-                idx +=1
-                continue
-
             matrix_index = self.graph.getVertices().index(room_name)
             if room_dist_list[matrix_index] == 0:
                 room_dist_list[matrix_index] = m[1]+1
