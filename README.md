@@ -1,6 +1,10 @@
 # computervisie-group8
 https://www.overleaf.com/8694155824wvwpcnkrcxzz
 
+# Powerpoint
+
+[ppt](Group8_CV_project_presentation 1.pdf)
+
 # Code overview
 
 - **main.py** contains the main control loop of the program and visualizes the state of the hidden markov model.
