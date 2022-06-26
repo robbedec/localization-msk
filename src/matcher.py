@@ -373,8 +373,8 @@ class PaintingMatcher():
                 img = resize_with_aspectratio(img, width=400)
                 txt = str(current_fvec[i][1])
                 cv2.putText(img=img, text=txt, org=(50, 50), fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=1, color=(0, 255, 0), thickness=2)
-                cv2.namedWindow("Resnet " + str(i + 1), flags=cv2.WINDOW_NORMAL)
-                cv2.imshow("Resnet " + str(i + 1), img)
+                cv2.namedWindow("VGG " + str(i + 1), flags=cv2.WINDOW_NORMAL)
+                cv2.imshow("VGG " + str(i + 1), img)
             
         cv2.waitKey(1)
     
