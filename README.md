@@ -3,7 +3,7 @@ https://www.overleaf.com/8694155824wvwpcnkrcxzz
 
 # Powerpoint
 
-[ppt](Group8_CV_project_presentation 1.pdf)
+[ppt](https://github.ugent.be/rodcorte/computervisie-group8/blob/85bd59341e7705c148d0937283439f6f7ac80921/Group8_CV_project_presentation%201.pdf)
 
 # Code overview
 
