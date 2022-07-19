@@ -4,7 +4,7 @@
 
 # Powerpoint
 
-[Presentation](./docs/Group8_CV_project_presentation 1.pdf)
+[Presentation](./docs/Group8_CV_project_presentation.pdf)
 
 # Code overview
 
