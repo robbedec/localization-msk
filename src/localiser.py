@@ -51,7 +51,7 @@ class Localiser():
         # Calculate the chance that the frame is located in a room (for every room)
         room_odds = self.calculateRoomOdds(dist_list)
 
-        room_pred = self.hmm.getOptimalPrediction(room_odds, viterbi=True)
+        room_pred = self.hmm.getOptimalPrediction(room_odds, forward=True)
         if room_pred is None or room_pred[1] is None:
             # Geen idee waarom dit gebeurt.
             return self.previous
@@ -84,13 +84,9 @@ class Localiser():
             m = soft_matches[idx]
             room = self.matcher.get_room(m[0])
             room_name = room.split("_")[1]
-            if(room_name == "V"):   ## Staat niet op grondplan? -> vragen
-                idx +=1
-                continue
-
             matrix_index = self.graph.getVertices().index(room_name)
             if room_dist_list[matrix_index] == 0:
-                room_dist_list[matrix_index] = m[1]
+                room_dist_list[matrix_index] = m[1]+1
                 room_count +=1
             idx+=1
         return room_dist_list

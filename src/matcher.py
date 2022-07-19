@@ -16,6 +16,7 @@ from util import resize_with_aspectratio
 from util import printProgressBar
 
 import tensorflow as tf
+
 from keras.applications.imagenet_utils import decode_predictions, preprocess_input
 from keras.models import Model
 from tensorflow.keras.applications.vgg16 import VGG16
@@ -95,7 +96,8 @@ class CustomResNet():
 
             return img, x
         else:
-            img = tf.image.load_img(path, target_size=self.model.input_shape[1:3])
+            #img = tf.image.load_img(path, target_size=self.model.input_shape[1:3])
+            img = tf.keras.preprocessing.image.load_img(path, target_size=self.model.input_shape[1:3])
             x = tf.keras.utils.img_to_array(img)
             x = np.expand_dims(x, axis=0)
             x = preprocess_input(x)
@@ -108,7 +110,7 @@ class CustomResNet():
             x = tf.keras.preprocessing.image.img_to_array(res)
             x = np.expand_dims(x, axis=0)
             #x = preprocess_input(x)
-            return x        
+            return x
         else:
             res = tf.image.resize(img, self.model.input_shape[1:3])
             x = tf.keras.utils.img_to_array(res)
@@ -371,8 +373,8 @@ class PaintingMatcher():
                 img = resize_with_aspectratio(img, width=400)
                 txt = str(current_fvec[i][1])
                 cv2.putText(img=img, text=txt, org=(50, 50), fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=1, color=(0, 255, 0), thickness=2)
-                cv2.namedWindow("Resnet " + str(i + 1), flags=cv2.WINDOW_NORMAL)
-                cv2.imshow("Resnet " + str(i + 1), img)
+                cv2.namedWindow("VGG " + str(i + 1), flags=cv2.WINDOW_NORMAL)
+                cv2.imshow("VGG " + str(i + 1), img)
             
         cv2.waitKey(1)
     

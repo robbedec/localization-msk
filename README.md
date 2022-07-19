@@ -1,6 +1,22 @@
 # computervisie-group8
 https://www.overleaf.com/8694155824wvwpcnkrcxzz
 
+# Powerpoint
+
+[ppt](https://github.ugent.be/rodcorte/computervisie-group8/blob/85bd59341e7705c148d0937283439f6f7ac80921/Group8_CV_project_presentation%201.pdf)
+
+# Code overview
+
+- **main.py** contains the main control loop of the program and visualizes the state of the hidden markov model.
+- **preprocessing.py** defines the wavelet based sharpness metric and the code to calibrate a camera or load a calibration file.
+- **detector.py** contains the unsupervised detection pipeline.
+- **matcher.py** contains all the logic to match paintings based on the feature vector representation and the detected ORB keypoints.
+- **localiser.py** and **hmm.py** combine the results of the detector and matcher to predect the current location using a hidden markov model.
+- **util.py** and **graph.py** are general utilities used throughout the code, the graph class is mainly used in the localization part.
+- **benmark.py**, **benchmark_fvector_matching.ipynb** and **benchmark_keypoint_matching** contain the benchmarking code for the detector and the matcher.
+
+Most files that are the base of the pipeline (detector, matcher, localizer) contain a seperate main method to run them as individual components with self inserted parameters. This was used for testing.
+
 
 # Install requirements
 
@@ -24,7 +40,7 @@ Execute main program:
 
 
 # Sample usage using a Taskfile (Robbe Ubuntu, absolute paths)
-
+**TODO:update**
 ```bash
 #!/bin/bash
 
