@@ -1,0 +1,28 @@
+\section{Frame processing}
+\label{sec:preprocessing}
+
+\subsection{Frame selection using a sharpness metric}
+\label{subsec:blur-detection}
+% Voor uitleg over accutance
+% https://www.cambridgeincolour.com/tutorials/sharpness.htm
+
+Running the detection and matching algorithm on every frame in the video is unfeasible when realtime positioning is required because the time needed to complete every stage takes longer than the available time\footnote{Available time is based on the FPS of the video feed, in perfect circumstances we would match the original FPS with all calculation included.}. If this is ignored, the video stream would be playing in an extreme form of slow motion. Note that it is also possible that some frames may be blurry and thus are a complete waste of computational resources. Motion blur is caused by moving the camera around and  severely hampers the matching of details (edges are less visible, strong keypoints become undetectable, etc.).  The frames will most likely not be matched correctly and should be avoided. Image sharpness is closely related to acutance. It describes how quickly image information transitions at an edge, and so high acutance results in sharp transitions and detail with clearly defined borders \cite{tutorialSharpness}. In practice, only images with high acutance are  wanted  to feed the detection pipeline. That is why a procedure is needed to measure sharpness in an image.
+
+One possible solution to handle this problem is to implement the algorithm proposed by Tong et al. \cite{Hanghang2004}. The proposed scheme makes use of the Haar wavelet transform to decompose a given image into an approximation image and oriented detail coefficients (horizontal, vertical, and diagonal direction). Edges are generally classified based on how sudden the transition is. Immediate transitions can be seen as a Dirac-like structure while slower transitions are more like a skewed step function \cite{Hanghang2004}\cite{712011}. Images normally contain all kinds of edge structures while the images affected by motion blur generally lack strong edges. The general technique to detect a blurry image is to classify and count different kinds of edges on consecutively decomposed images. For each decomposition level, an edge map is created based on the detail coefficients of that level. This results in a pyramid like structure (image dimensions of the approximation reduces every iteration) in which different edge types are counted. The image is classified as blurry if the ratio between Dirac edges and skewed step functions (with a given slope) exceeds a given threshold.
+
+\subsection{Handling camera distortion}
+
+Parts of the videos included in the dataset are filmed with a GoPro camera. This camera contains a so-called fish eye lens. It causes an extreme wide-angle perspective that can be great for an immersive action look but not so much when applying detection techniques to the captured frames. The distortion is especially noticeable for straight lines in the frame. If the line is centered in the frame, it can remain quite straight. But because of the way the lens distortion works, the more the line is moved to the edges of the frame (top, bottom, left, right), the more curved the line will be.
+
+This makes the detection of straight lines more difficult and two versions of the algorithm would be required. One for a \textit{normal} camera and one for cameras with a fish eye lens. Therefore, we need to calibrate the GoPro camera so the distortion effects are reduced. This functionality is implemented in the following OpenCV functions: 
+
+\begin{enumerate}
+    \item Point correspondences between multiple frames are found by moving around a rectangular chessboard. The inner corners of the board are automatically detected using \textbf{cv2.findChessboardCorners}. Locations of found corners are refined with the \textbf{cv2.cornerSubPix} (integer to floating-point coordinates). These correspondences act as the input of the calibrateCamera function in the next step.
+    \item \textbf{cv2.calibrateCamera} returns the camera matrix, distortion coefficients, rotation and translation vectors (intrinsic and extrinsic camera parameters). This function implements the algorithm proposed by Zhengyou Zhang \cite{Zhang2000}. Results are persisted for each camera type.
+    \item \textbf{cv2.undistort} reduces the distortion effects. Note that the resulting image should be cropped using the valid pixel ROI metrics provided by \textbf{cv2.getOptimalNewCameraMatrix}.
+\end{enumerate}
+
+%The effectiveness of the procedure above is illustrated using figure \ref{fig:FIXME} (image from the GoPro, before undistort) and figure \ref{fig:FIXME} (after reducing distortion effects). Note that the lines in the second image appear much straighter than before.
+
+% TODO: fotos before en after distortion.
+% ga ik skippen denk ik (robbe) geen probleem we begrijpen het gr. Lennert

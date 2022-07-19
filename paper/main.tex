@@ -1,0 +1,82 @@
+\documentclass[conference, a4paper]{IEEEtran}
+\IEEEoverridecommandlockouts
+% The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\graphicspath{{images/}}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{cuted}
+\usepackage{capt-of}
+\usepackage{hhline}
+\usepackage{multirow}
+\usepackage{colortbl}
+\usepackage{subfigure}
+\usepackage{nicematrix}
+
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+    
+\makeatletter
+\newcommand{\linebreakand}{%
+  \end{@IEEEauthorhalign}
+  \hfill\mbox{}\par
+  \mbox{}\hfill\begin{@IEEEauthorhalign}
+}
+\makeatother
+    
+\begin{document}
+
+\title{Recognition based indoor positioning at MSK Ghent \\{\large Computervision project group 8, 2021-2022}}
+
+\author{
+    \IEEEauthorblockN{Robbe Decorte}
+    \IEEEauthorblockA{
+        \textit{robbe.decorte@ugent.be}
+    }
+    \and
+    \IEEEauthorblockN{Bram De Bleecker}
+    \IEEEauthorblockA{
+        \textit{bram.debleecker@ugent.be}
+    }
+    \linebreakand
+    \IEEEauthorblockN{Lance Dewaele}
+    \IEEEauthorblockA{
+        \textit{lance.dewaele@ugent.be}
+    }
+    \and
+    \IEEEauthorblockN{Benoît D'Haene}
+    \IEEEauthorblockA{
+        \textit{benoit.dhaene@ugent.be}
+    }
+    \and
+    \IEEEauthorblockN{Lennert Steyaert}
+    \IEEEauthorblockA{
+        \textit{lennert.steyaert@ugent.be}
+    }
+}
+
+\maketitle
+
+\begin{abstract}
+An indoor positioning program for the MSK Ghent was developed in this article. Videos made by a visitor of the MSK Ghent are used to determine the visitor’s position and the taken path. From those videos, paintings are extracted and compared with a database. The unsupervised painting detection algorithm achieved an F1-score of 85\% and an average intersection of union score of 89\% (for the detected paintings) on a test dataset with 801 samples. To match the extracted paintings with the database one of three different matcher combinations can be used (keypoint-based matching (ORB), feature vector-based matching, or a combination of the previous two). The keypoint-based feature and vector-based matchers were extensively tested and benchmarked to select either an optimal amount of keypoints (in the case of ORB) or the kind of distance metric for the feature vector case. Based on the results we’ve chosen 100 keypoints and as distance metric cityblock and euclidean. The vector generation was executed using the VGG16 deep learning architecture. For the localization, a hidden Markov model was used to predict the changes of the user being in a certain room. Finally, these chances are visualized with colors on a floor plan of the MSK Ghent. The most likely used path is also shown on the floor plan.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Computer vision, painting detection, unsupervised learning, ORB, hidden Markov model, image similarity, image preprocessing
+\end{IEEEkeywords}
+
+\input{sections/introduction}
+\input{sections/preprocessing}
+\input{sections/detection}
+\input{sections/matching}
+\input{sections/localisation}
+
+\input{sections/conclusion}
+% \section{Results}
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+\end{document}

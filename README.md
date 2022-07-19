@@ -1,9 +1,10 @@
 # computervisie-group8
-https://www.overleaf.com/8694155824wvwpcnkrcxzz
+
+[Paper (local)](./paper/Computervisie_paper.pdf) or https://www.overleaf.com/8694155824wvwpcnkrcxzz
 
 # Powerpoint
 
-[ppt](https://github.ugent.be/rodcorte/computervisie-group8/blob/85bd59341e7705c148d0937283439f6f7ac80921/Group8_CV_project_presentation%201.pdf)
+[Presentation](./docs/Group8_CV_project_presentation 1.pdf)
 
 # Code overview
 
@@ -22,7 +23,7 @@ Most files that are the base of the pipeline (detector, matcher, localizer) cont
 
 ```bash
  pip3 install -r requirements.txt
- ```
+```
 
 # Dummy commands
 
